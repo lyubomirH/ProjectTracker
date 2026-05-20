@@ -1,0 +1,231 @@
+﻿@model ProjectTracker.Web.ViewModels.WorkItems.WorkItemDetailsViewModel
+
+@{
+    ViewData["Title"] = Model.Title;
+}
+
+<div class="mb-4">
+    <div class="d-flex justify-content-between align-items-center">
+        <h2>@Model.Title</h2>
+        <div>
+            <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning btn-sm">
+                <i class="fas fa-edit"></i> Edit
+            </a>
+            <a asp-action="Index" asp-route-projectId="@Model.ProjectId" class="btn btn-secondary btn-sm">
+                <i class="fas fa-arrow-left"></i> Back
+            </a>
+        </div>
+    </div>
+    <hr />
+</div>
+
+<div class="row">
+    <!-- Main Content -->
+    <div class="col-md-8">
+        <!-- Description Card -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-align-left"></i> Description</h5>
+            </div>
+            <div class="card-body">
+                @if (string.IsNullOrEmpty(Model.Description))
+                {
+                    <p class="text-muted mb-0">No description provided.</p>
+                }
+                else
+                {
+                    <p class="mb-0">@Model.Description</p>
+                }
+            </div>
+        </div>
+
+        <!-- Comments Section -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-comments"></i> Comments (@Model.Comments.Count)</h5>
+            </div>
+            <div class="card-body">
+                <!-- Add Comment Form -->
+                <div class="mb-4">
+                    <form id="addCommentForm" method="post" asp-action="AddComment" asp-controller="WorkItems">
+                        <input type="hidden" name="workItemId" value="@Model.Id" />
+                        <div class="mb-2">
+                            <textarea name="content" class="form-control" rows="3" placeholder="Write a comment..."></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-sm">
+                            <i class="fas fa-paper-plane"></i> Add Comment
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Comments List -->
+                <div id="commentsList">
+                    @if (!Model.Comments.Any())
+                    {
+                        <p class="text-muted text-center py-3 mb-0">No comments yet. Be the first to comment!</p>
+                    }
+                    else
+                    {
+                        @foreach (var comment in Model.Comments.OrderByDescending(c => c.CreatedAt))
+                        {
+                            <div class="border-bottom pb-3 mb-3">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <strong><i class="fas fa-user-circle"></i> @comment.AuthorName</strong>
+                                        <small class="text-muted ms-2">@comment.CreatedAt.ToString("yyyy-MM-dd HH:mm")</small>
+                                    </div>
+                                </div>
+                                <p class="mb-0 mt-2">@comment.Content</p>
+                            </div>
+                        }
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="col-md-4">
+        <!-- Status Card -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-info-circle"></i> Status</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="text-muted small">Current Status</label>
+                    <div>
+                        <span class="badge @Model.StatusBadgeClass fs-6">@Model.Status</span>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="text-muted small">Priority</label>
+                    <div>
+                        <span class="badge @Model.PriorityBadgeClass fs-6">@Model.Priority</span>
+                    </div>
+                </div>
+                @if (Model.CompletedAt.HasValue)
+                {
+                    <div class="mb-3">
+                        <label class="text-muted small">Completed On</label>
+                        <div>@Model.CompletedAt.Value.ToString("yyyy-MM-dd HH:mm")</div>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Assignment Card -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-users"></i> Assignment</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="text-muted small">Assignee</label>
+                    <div>
+                        @if (Model.AssigneeName == "Unassigned")
+                        {
+                            <span class="text-muted"><i class="fas fa-user-slash"></i> Not assigned</span>
+                        }
+                        else
+                        {
+                            <span><i class="fas fa-user-check"></i> @Model.AssigneeName</span>
+                        }
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="text-muted small">Created By</label>
+                    <div><i class="fas fa-user-plus"></i> @Model.CreatedByName</div>
+                </div>
+                <div class="mb-3">
+                    <label class="text-muted small">Created On</label>
+                    <div><i class="fas fa-calendar-alt"></i> @Model.CreatedAt.ToString("yyyy-MM-dd HH:mm")</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Timeline Card -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-clock"></i> Timeline</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="text-muted small">Due Date</label>
+                    <div>
+                        @if (Model.DueDate.HasValue)
+                        {
+                            if (Model.DueDate.Value < DateTime.UtcNow && Model.Status != "Done")
+                            {
+                                <span class="text-danger">
+                                    <i class="fas fa-exclamation-triangle"></i> @Model.DueDate.Value.ToString("yyyy-MM-dd") (Overdue)
+                                </span>
+                            }
+                            else
+                            {
+                                <span>@Model.DueDate.Value.ToString("yyyy-MM-dd")</span>
+                            }
+                        }
+                        else
+                        {
+                            <span class="text-muted">Not set</span>
+                        }
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="text-muted small">Estimated Hours</label>
+                    <div>@(Model.EstimatedHours.HasValue ? $"{Model.EstimatedHours} hours" : "Not set")</div>
+                </div>
+                <div class="mb-3">
+                    <label class="text-muted small">Actual Hours</label>
+                    <div>@(Model.ActualHours.HasValue ? $"{Model.ActualHours} hours" : "Not set")</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Project Link Card -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-project-diagram"></i> Project</h5>
+            </div>
+            <div class="card-body">
+                <a asp-controller="Projects" asp-action="Details" asp-route-id="@Model.ProjectId" class="text-decoration-none">
+                    <i class="fas fa-link"></i> @Model.ProjectName
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // AJAX comment submission
+        document.getElementById('addCommentForm')?.addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const form = e.target;
+            const formData = new FormData(form);
+
+            try {
+                const response = await fetch('/WorkItems/AddComment', {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value
+                    }
+                });
+
+                if (response.ok) {
+                    // Reload the page to show new comment
+                    location.reload();
+                } else {
+                    const error = await response.text();
+                    alert('Error adding comment: ' + error);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('An error occurred while adding the comment.');
+            }
+        });
+    </script>
+}

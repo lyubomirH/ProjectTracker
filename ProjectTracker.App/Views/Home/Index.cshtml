@@ -1,0 +1,66 @@
+﻿@{
+    ViewData["Title"] = "Home";
+}
+
+<div class="text-center">
+    <div class="hero-section py-5">
+        <h1 class="display-4 fw-bold text-primary">Project Tracker</h1>
+        <p class="lead">Manage your projects, tasks, and team members efficiently</p>
+
+        @if (User.Identity?.IsAuthenticated == true)
+        {
+            <div class="alert alert-success mt-4">
+                <i class="fas fa-smile-wink"></i> @ViewBag.WelcomeMessage
+            </div>
+            <div class="mt-4">
+                <a asp-controller="Projects" asp-action="Index" class="btn btn-primary btn-lg mx-2">
+                    <i class="fas fa-project-diagram"></i> My Projects
+                </a>
+                <a asp-controller="WorkItems" asp-action="Index" class="btn btn-success btn-lg mx-2">
+                    <i class="fas fa-tasks"></i> My Tasks
+                </a>
+            </div>
+        }
+        else
+        {
+            <div class="mt-4">
+                <a asp-controller="Auth" asp-action="Login" class="btn btn-primary btn-lg mx-2">
+                    <i class="fas fa-sign-in-alt"></i> Login
+                </a>
+                <a asp-controller="Auth" asp-action="Register" class="btn btn-success btn-lg mx-2">
+                    <i class="fas fa-user-plus"></i> Register
+                </a>
+            </div>
+        }
+    </div>
+
+    <div class="row mt-5">
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <i class="fas fa-project-diagram fa-3x text-primary mb-3"></i>
+                    <h5 class="card-title">Project Management</h5>
+                    <p class="card-text">Create and manage projects, track progress, and collaborate with team members.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <i class="fas fa-tasks fa-3x text-success mb-3"></i>
+                    <h5 class="card-title">Task Tracking</h5>
+                    <p class="card-text">Create tasks, assign to team members, set priorities, and track completion status.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <i class="fas fa-users fa-3x text-info mb-3"></i>
+                    <h5 class="card-title">Team Collaboration</h5>
+                    <p class="card-text">Add team members to projects, assign roles, and work together efficiently.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

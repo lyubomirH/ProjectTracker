@@ -1,0 +1,158 @@
+﻿@model List<ProjectTracker.Web.ViewModels.WorkItems.WorkItemListViewModel>
+
+@{
+    ViewData["Title"] = "Work Items";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-tasks"></i> Work Items</h2>
+    @{
+        var projects = ViewBag.Projects as List<dynamic>;
+        if (projects != null && projects.Any())
+        {
+            <div class="dropdown">
+                <button class="btn btn-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                    <i class="fas fa-plus"></i> New Work Item
+                </button>
+                <ul class="dropdown-menu">
+                    @foreach (var project in projects)
+                    {
+                        <li>
+                            <a class="dropdown-item" asp-action="Create" asp-route-projectId="@project.Id">
+                                @project.Name
+                            </a>
+                        </li>
+                    }
+                </ul>
+            </div>
+        }
+    }
+</div>
+
+<!-- Filter Card -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3 align-items-end">
+            <div class="col-md-10">
+                <label class="form-label fw-bold">Filter by Project</label>
+                <select name="projectId" class="form-select" onchange="this.form.submit()">
+                    <option value="">All Projects</option>
+                    @if (projects != null)
+                    {
+                        foreach (var project in projects)
+                        {
+                            var selected = ViewBag.SelectedProjectId != null && ViewBag.SelectedProjectId == project.Id;
+                            <option value="@project.Id" selected="@selected">
+                                @project.Name
+                            </option>
+                        }
+                    }
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-secondary w-100">
+                    <i class="fas fa-filter"></i> Filter
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@if (!Model.Any())
+{
+    <div class="alert alert-info text-center py-5">
+        <i class="fas fa-info-circle fa-2x mb-3 d-block"></i>
+        <h5>No work items found</h5>
+        <p class="mb-0">Create your first work item by clicking the "New Work Item" button above.</p>
+    </div>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-hover table-striped">
+            <thead class="table-dark">
+                <tr>
+                    <th>Title</th>
+                    <th>Project</th>
+                    <th>Status</th>
+                    <th>Priority</th>
+                    <th>Assignee</th>
+                    <th>Due Date</th>
+                    <th>Created</th>
+                    <th class="text-center">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model)
+                {
+                    <tr>
+                        <td>
+                            <strong>@item.Title</strong>
+                        </td>
+                        <td>
+                            <a asp-controller="Projects" asp-action="Details" asp-route-id="@item.ProjectId" class="text-decoration-none">
+                                <i class="fas fa-project-diagram"></i> @item.ProjectName
+                            </a>
+                        </td>
+                        <td>
+                            <span class="badge @item.StatusBadgeClass">@item.Status</span>
+                        </td>
+                        <td>
+                            <span class="badge @item.PriorityBadgeClass">@item.Priority</span>
+                        </td>
+                        <td>
+                            @if (item.AssigneeName == "Unassigned")
+                            {
+                                <span class="text-muted"><i class="fas fa-user-slash"></i> Unassigned</span>
+                            }
+                            else
+                            {
+                                <i class="fas fa-user"></i> 
+                                @item.AssigneeName
+                            }
+                        </td>
+                        <td>
+                            @if (item.DueDate.HasValue)
+                            {
+                                if (item.DueDate.Value < DateTime.UtcNow && item.Status != "Done")
+                                {
+                                    <span class="text-danger">
+                                        <i class="fas fa-exclamation-triangle"></i> @item.DueDate.Value.ToString("yyyy-MM-dd")
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span>@item.DueDate.Value.ToString("yyyy-MM-dd")</span>
+                                }
+                            }
+                            else
+                            {
+                                <span class="text-muted">-</span>
+                            }
+                        </td>
+                        <td>@item.CreatedAt.ToString("yyyy-MM-dd")</td>
+                        <td class="text-center">
+                            <div class="btn-group btn-group-sm" role="group">
+                                <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-outline-info" title="Details">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-outline-warning" title="Edit">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@section Scripts {
+    <script>
+        // Auto-submit filter when project changes
+        document.querySelector('select[name="projectId"]')?.addEventListener('change', function() {
+            this.form.submit();
+        });
+    </script>
+}
