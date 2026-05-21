@@ -58,7 +58,7 @@
                     {
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown">
-                                <i class="fas fa-user-circle"></i> @User.FindFirstValue("FirstName")?.@User.FindFirstValue("LastName")
+                                <i class="fas fa-user-circle"></i> @User.FindFirst("FirstName")? @User.FindFirst("LastName")
                             </a>
                             <ul class="dropdown-menu dropdown-menu-end">
                                 <li><a class="dropdown-item" asp-controller="Auth" asp-action="Profile"><i class="fas fa-id-card"></i> My Profile</a></li>
