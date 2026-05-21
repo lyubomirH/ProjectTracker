@@ -1,8 +1,10 @@
-﻿using Microsoft.AspNetCore.Identity;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using ProjectTracker.Data.Constants;
 using ProjectTracker.Data.Entities;
 using ProjectTracker.Web.ViewModels.Auth;
+using System.Security.Claims;
 
 namespace ProjectTracker.Web.Controllers
 {
@@ -96,7 +98,7 @@ namespace ProjectTracker.Web.Controllers
                 await _userManager.AddToRoleAsync(user, model.Role);
 
                 await _signInManager.SignInAsync(user, isPersistent: false);
-                TempData["SuccessMessage"] = "Account created successfully!";
+                TempData["SuccessMessage"] = "Account created successfully! Welcome!";
                 return RedirectToAction("Index", "Home");
             }
 
@@ -114,6 +116,73 @@ namespace ProjectTracker.Web.Controllers
             await _signInManager.SignOutAsync();
             TempData["SuccessMessage"] = "You have been logged out.";
             return RedirectToAction("Index", "Home");
+        }
+
+        [HttpGet]
+        [Authorize]
+        public async Task<IActionResult> Profile()
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var user = await _userManager.FindByIdAsync(userId);
+
+            if (user == null)
+            {
+                return RedirectToAction("Error404", "Home");
+            }
+
+            var model = new ProfileViewModel
+            {
+                Email = user.Email ?? string.Empty,
+                FirstName = user.FirstName,
+                LastName = user.LastName,
+                AvatarUrl = user.AvatarUrl,
+                Department = user.Department,
+                JobTitle = user.JobTitle,
+                Bio = user.Bio
+            };
+
+            return View(model);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Authorize]
+        public async Task<IActionResult> Profile(ProfileViewModel model)
+        {
+            if (!ModelState.IsValid)
+            {
+                return View(model);
+            }
+
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var user = await _userManager.FindByIdAsync(userId);
+
+            if (user == null)
+            {
+                return RedirectToAction("Error404", "Home");
+            }
+
+            user.FirstName = model.FirstName;
+            user.LastName = model.LastName;
+            user.AvatarUrl = model.AvatarUrl;
+            user.Department = model.Department;
+            user.JobTitle = model.JobTitle;
+            user.Bio = model.Bio;
+
+            var result = await _userManager.UpdateAsync(user);
+
+            if (result.Succeeded)
+            {
+                TempData["SuccessMessage"] = "Profile updated successfully!";
+                return RedirectToAction("Profile");
+            }
+
+            foreach (var error in result.Errors)
+            {
+                ModelState.AddModelError(string.Empty, error.Description);
+            }
+
+            return View(model);
         }
     }
 }

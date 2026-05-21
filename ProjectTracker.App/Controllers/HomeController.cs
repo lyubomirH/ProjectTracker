@@ -12,8 +12,8 @@ namespace ProjectTracker.Web.Controllers
 
             if (User.Identity?.IsAuthenticated == true)
             {
-                var userName = User.FindFirstValue(ClaimTypes.Name) ?? "User";
-                ViewBag.WelcomeMessage = $"Welcome back, {userName}!";
+                var firstName = User.FindFirstValue("FirstName") ?? "User";
+                ViewBag.WelcomeMessage = $"Welcome back, {firstName}!";
             }
 
             return View();
@@ -34,6 +34,11 @@ namespace ProjectTracker.Web.Controllers
                 500 => View("Error500"),
                 _ => View("Error404")
             };
+        }
+
+        public IActionResult ServerError()
+        {
+            return View("Error500");
         }
     }
 }
