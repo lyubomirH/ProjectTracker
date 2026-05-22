@@ -214,42 +214,5 @@ namespace ProjectTracker.Services.Services
 
             return (double)completed / total * 100;
         }
-
-        public async Task<IEnumerable<TeamMemberDto>> GetProjectTeamMembersAsync(int projectId, string userId, bool isAdmin)
-        {
-            var project = await _context.Projects
-                .Include(p => p.TeamMembers)
-                    .ThenInclude(tm => tm.User)
-                .FirstOrDefaultAsync(p => p.Id == projectId && !p.IsDeleted);
-
-            if (project == null)
-            {
-                return new List<TeamMemberDto>();
-            }
-
-            // Check access
-            var isOwner = project.OwnerId == userId;
-            var isTeamMember = project.TeamMembers.Any(tm => tm.UserId == userId);
-
-            if (!isAdmin && !isOwner && !isTeamMember)
-            {
-                return new List<TeamMemberDto>();
-            }
-
-            return project.TeamMembers
-                .Where(tm => tm.IsActive)
-                .Select(tm => new TeamMemberDto
-                {
-                    Id = tm.Id,
-                    ProjectId = tm.ProjectId,
-                    ProjectName = project.Name,
-                    UserId = tm.UserId,
-                    UserName = tm.User.FullName,
-                    UserEmail = tm.User.Email ?? string.Empty,
-                    Role = tm.Role.ToString(),
-                    JoinedAt = tm.JoinedAt,
-                    IsActive = tm.IsActive
-                });
-        }
     }
 }

@@ -12,6 +12,5 @@ namespace ProjectTracker.Services.Interfaces
         Task<bool> IsUserInProjectAsync(int projectId, string userId);
         Task<int> GetProjectWorkItemsCountAsync(int projectId);
         Task<double> GetProjectCompletionPercentageAsync(int projectId);
-        Task<IEnumerable<TeamMemberDto>> GetProjectTeamMembersAsync(int projectId, string userId, bool isAdmin);
     }
 }
