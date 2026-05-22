@@ -7,26 +7,28 @@ namespace ProjectTracker.Web.ViewModels.Projects
     {
         public int Id { get; set; }
 
-        [Required]
-        [StringLength(DataConstants.Project.MaxNameLength, MinimumLength = DataConstants.Project.MinNameLength)]
+        [Required(ErrorMessage = "Project name is required")]
+        [StringLength(DataConstants.Project.MaxNameLength, MinimumLength = DataConstants.Project.MinNameLength,
+            ErrorMessage = "Project name must be between {2} and {1} characters")]
         [Display(Name = "Project Name")]
         public string Name { get; set; } = string.Empty;
 
-        [StringLength(DataConstants.Project.MaxDescriptionLength)]
+        [StringLength(DataConstants.Project.MaxDescriptionLength,
+            ErrorMessage = "Description cannot exceed {1} characters")]
         [Display(Name = "Description")]
         public string? Description { get; set; }
 
-        [Required]
+        [Required(ErrorMessage = "Start date is required")]
         [DataType(DataType.Date)]
         [Display(Name = "Start Date")]
-        public DateTime StartDate { get; set; }
+        public DateTime StartDate { get; set; } = DateTime.Today;
 
         [DataType(DataType.Date)]
         [Display(Name = "End Date")]
         public DateTime? EndDate { get; set; }
 
-        [Required]
+        [Required(ErrorMessage = "Status is required")]
         [Display(Name = "Status")]
-        public string Status { get; set; } = string.Empty;
+        public string Status { get; set; } = "Active";
     }
 }

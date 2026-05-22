@@ -13,6 +13,16 @@
 
         public List<TeamMemberViewModel> TeamMembers { get; set; } = new();
         public List<WorkItemSummaryViewModel> WorkItems { get; set; } = new();
+
+        public string StatusBadgeClass => Status switch
+        {
+            "Active" => "bg-success",
+            "OnHold" => "bg-warning",
+            "Completed" => "bg-info",
+            "Archived" => "bg-secondary",
+            "Cancelled" => "bg-danger",
+            _ => "bg-secondary"
+        };
     }
 
     public class TeamMemberViewModel
@@ -31,5 +41,25 @@
         public string Priority { get; set; } = string.Empty;
         public string AssigneeName { get; set; } = string.Empty;
         public DateTime? DueDate { get; set; }
+
+        public string StatusBadgeClass => Status switch
+        {
+            "ToDo" => "bg-secondary",
+            "InProgress" => "bg-primary",
+            "CodeReview" => "bg-info",
+            "Testing" => "bg-warning",
+            "Done" => "bg-success",
+            "Blocked" => "bg-danger",
+            _ => "bg-secondary"
+        };
+
+        public string PriorityBadgeClass => Priority switch
+        {
+            "Low" => "bg-info",
+            "Medium" => "bg-primary",
+            "High" => "bg-warning",
+            "Critical" => "bg-danger",
+            _ => "bg-secondary"
+        };
     }
 }

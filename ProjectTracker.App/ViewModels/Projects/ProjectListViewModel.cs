@@ -17,5 +17,15 @@
         public double CompletionPercentage => WorkItemsCount > 0
             ? Math.Round((double)CompletedWorkItemsCount / WorkItemsCount * 100, 1)
             : 0;
+
+        public string StatusBadgeClass => Status switch
+        {
+            "Active" => "bg-success",
+            "OnHold" => "bg-warning",
+            "Completed" => "bg-info",
+            "Archived" => "bg-secondary",
+            "Cancelled" => "bg-danger",
+            _ => "bg-secondary"
+        };
     }
 }

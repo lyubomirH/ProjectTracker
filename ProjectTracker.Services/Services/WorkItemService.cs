@@ -264,15 +264,6 @@ namespace ProjectTracker.Services.Services
 
         public async Task<CommentDto> AddCommentAsync(int workItemId, string content, string authorId)
         {
-            var workItem = await _context.WorkItems
-                .Include(w => w.Project)
-                .FirstOrDefaultAsync(w => w.Id == workItemId && !w.Project.IsDeleted);
-
-            if (workItem == null)
-            {
-                throw new InvalidOperationException("Work item not found");
-            }
-
             var comment = new Comment
             {
                 Content = content,
