@@ -16,12 +16,19 @@
 
 @if (!Model.Any())
 {
-    <div class="alert alert-info text-center">
-        <i class="fas fa-info-circle"></i> No projects found.
-        @if (User.IsInRole("Admin") || User.IsInRole("ProjectManager"))
-        {
-            <a asp-action="Create">Create your first project</a>
-        }
+    <div class="alert alert-info text-center py-5">
+        <i class="fas fa-info-circle fa-3x mb-3"></i>
+        <h4>No projects found</h4>
+        <p class="mb-0">
+            @if (User.IsInRole("Admin") || User.IsInRole("ProjectManager"))
+            {
+                <a asp-action="Create">Create your first project</a>
+            }
+            else
+            {
+                <span>You are not a member of any project yet.</span>
+            }
+        </p>
     </div>
 }
 else
@@ -32,22 +39,18 @@ else
             <div class="col-md-6 col-lg-4 mb-4">
                 <div class="card h-100 shadow-sm">
                     <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-start">
-                            <h5 class="card-title">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <h5 class="card-title mb-0">
                                 <a asp-action="Details" asp-route-id="@project.Id" class="text-decoration-none">
                                     @project.Name
                                 </a>
                             </h5>
-                            <span class="badge bg-@(project.Status == "Active" ? "success" :
-                                                                                  project.Status == "OnHold" ? "warning" :
-                                                                                  project.Status == "Completed" ? "info" : "secondary")">
-                                @project.Status
-                            </span>
+                            <span class="badge @project.StatusBadgeClass">@project.Status</span>
                         </div>
-                        <p class="card-text text-muted small">@(project.Description?.Length > 100 ? project.Description.Substring(0, 100) + "..." : project.Description)</p>
+                        <p class="card-text text-muted small">@(project.Description?.Length > 100 ? project.Description.Substring(0, 100) + "..." : project.Description ?? "No description")</p>
 
-                        <div class="progress mb-2" style="height: 5px;">
-                            <div class="progress-bar" style="width: @project.CompletionPercentage%"></div>
+                        <div class="progress mb-2" style="height: 6px;">
+                            <div class="progress-bar bg-success" style="width: @project.CompletionPercentage%"></div>
                         </div>
                         <div class="d-flex justify-content-between small text-muted mb-3">
                             <span><i class="fas fa-tasks"></i> @project.CompletedWorkItemsCount/@project.WorkItemsCount tasks</span>
