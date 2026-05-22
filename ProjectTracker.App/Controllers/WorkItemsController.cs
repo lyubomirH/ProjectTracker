@@ -2,8 +2,8 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ProjectTracker.Data;
-using ProjectTracker.Data.Entities;
-using ProjectTracker.Data.Enums;
+using ProjectTracker.Services.DTOs;
+using ProjectTracker.Services.Interfaces;
 using ProjectTracker.Web.ViewModels.WorkItems;
 using System.Security.Claims;
 
@@ -12,10 +12,17 @@ namespace ProjectTracker.Web.Controllers
     [Authorize]
     public class WorkItemsController : Controller
     {
+        private readonly IWorkItemService _workItemService;
+        private readonly IProjectService _projectService;
         private readonly ApplicationDbContext _context;
 
-        public WorkItemsController(ApplicationDbContext context)
+        public WorkItemsController(
+            IWorkItemService workItemService,
+            IProjectService projectService,
+            ApplicationDbContext context)
         {
+            _workItemService = workItemService;
+            _projectService = projectService;
             _context = context;
         }
 
@@ -25,42 +32,22 @@ namespace ProjectTracker.Web.Controllers
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             var isAdmin = User.IsInRole("Admin");
 
-            var workItemsQuery = _context.WorkItems
-                .Include(w => w.Project)
-                .Include(w => w.Assignee)
-                .Include(w => w.CreatedBy)
-                .Where(w => !w.Project.IsDeleted);
+            var workItems = await _workItemService.GetWorkItemsAsync(projectId, userId, isAdmin);
 
-            if (projectId.HasValue)
+            var viewModel = workItems.Select(w => new WorkItemListViewModel
             {
-                workItemsQuery = workItemsQuery.Where(w => w.ProjectId == projectId.Value);
-            }
+                Id = w.Id,
+                Title = w.Title,
+                ProjectName = w.ProjectName,
+                ProjectId = w.ProjectId,
+                Status = w.Status,
+                Priority = w.Priority,
+                AssigneeName = w.AssigneeName,
+                CreatedAt = w.CreatedAt,
+                DueDate = w.DueDate
+            }).ToList();
 
-            if (!isAdmin)
-            {
-                workItemsQuery = workItemsQuery.Where(w =>
-                    w.AssigneeId == userId ||
-                    w.CreatedById == userId ||
-                    w.Project.OwnerId == userId ||
-                    w.Project.TeamMembers.Any(tm => tm.UserId == userId));
-            }
-
-            var workItems = await workItemsQuery
-                .Select(w => new WorkItemListViewModel
-                {
-                    Id = w.Id,
-                    Title = w.Title,
-                    ProjectName = w.Project.Name,
-                    ProjectId = w.ProjectId,
-                    Status = w.Status.ToString(),
-                    Priority = w.Priority.ToString(),
-                    AssigneeName = w.Assignee != null ? w.Assignee.FullName : "Unassigned",
-                    CreatedAt = w.CreatedAt,
-                    DueDate = w.DueDate
-                })
-                .OrderByDescending(w => w.CreatedAt)
-                .ToListAsync();
-
+            // Get projects for filter dropdown
             var projects = await _context.Projects
                 .Where(p => !p.IsDeleted)
                 .Select(p => new { p.Id, p.Name })
@@ -69,7 +56,7 @@ namespace ProjectTracker.Web.Controllers
             ViewBag.Projects = projects;
             ViewBag.SelectedProjectId = projectId;
 
-            return View(workItems);
+            return View(viewModel);
         }
 
         [HttpGet]
@@ -78,23 +65,14 @@ namespace ProjectTracker.Web.Controllers
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             var isAdmin = User.IsInRole("Admin");
 
-            var project = await _context.Projects
-                .Include(p => p.TeamMembers)
-                .FirstOrDefaultAsync(p => p.Id == projectId && !p.IsDeleted);
+            var project = await _projectService.GetProjectByIdAsync(projectId, userId, isAdmin);
 
             if (project == null)
             {
                 return RedirectToAction("Error404", "Home");
             }
 
-            var isOwner = project.OwnerId == userId;
-            var isTeamMember = project.TeamMembers.Any(tm => tm.UserId == userId);
-
-            if (!isAdmin && !isOwner && !isTeamMember)
-            {
-                return RedirectToAction("AccessDenied", "Home");
-            }
-
+            // Get team members for assignee dropdown
             var teamMembers = await _context.TeamMembers
                 .Include(tm => tm.User)
                 .Where(tm => tm.ProjectId == projectId && tm.IsActive)
@@ -107,8 +85,8 @@ namespace ProjectTracker.Web.Controllers
             {
                 ProjectId = projectId,
                 ProjectName = project.Name,
-                Priority = WorkItemPriority.Medium.ToString(),
-                Status = WorkItemStatus.ToDo.ToString(),
+                Priority = "Medium",
+                Status = "ToDo",
                 DueDate = DateTime.Today.AddDays(7)
             };
 
@@ -136,24 +114,21 @@ namespace ProjectTracker.Web.Controllers
 
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
-            var workItem = new WorkItem
+            var createDto = new CreateWorkItemDto
             {
                 Title = model.Title,
                 Description = model.Description,
-                Priority = Enum.Parse<WorkItemPriority>(model.Priority),
-                Status = Enum.Parse<WorkItemStatus>(model.Status),
+                Priority = model.Priority,
+                Status = model.Status,
                 ProjectId = model.ProjectId,
                 AssigneeId = model.AssigneeId,
-                CreatedById = userId,
                 DueDate = model.DueDate,
-                EstimatedHours = model.EstimatedHours,
-                CreatedAt = DateTime.UtcNow
+                EstimatedHours = model.EstimatedHours
             };
 
-            _context.WorkItems.Add(workItem);
-            await _context.SaveChangesAsync();
+            var workItem = await _workItemService.CreateWorkItemAsync(createDto, userId);
 
-            TempData["SuccessMessage"] = "Work item created successfully!";
+            TempData["SuccessMessage"] = $"Work item \"{workItem.Title}\" created successfully!";
             return RedirectToAction(nameof(Index), new { projectId = model.ProjectId });
         }
 
@@ -163,54 +138,41 @@ namespace ProjectTracker.Web.Controllers
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             var isAdmin = User.IsInRole("Admin");
 
-            var workItem = await _context.WorkItems
-                .Include(w => w.Project)
-                .Include(w => w.Assignee)
-                .Include(w => w.CreatedBy)
-                .Include(w => w.Comments)
-                    .ThenInclude(c => c.Author)
-                .FirstOrDefaultAsync(w => w.Id == id && !w.Project.IsDeleted);
+            var workItem = await _workItemService.GetWorkItemByIdAsync(id, userId, isAdmin);
 
             if (workItem == null)
             {
                 return RedirectToAction("Error404", "Home");
             }
 
-            var isOwner = workItem.Project.OwnerId == userId;
-            var isTeamMember = await _context.TeamMembers
-                .AnyAsync(tm => tm.ProjectId == workItem.ProjectId && tm.UserId == userId);
+            var comments = await _workItemService.GetCommentsAsync(id);
 
-            if (!isAdmin && !isOwner && !isTeamMember && workItem.AssigneeId != userId && workItem.CreatedById != userId)
-            {
-                return RedirectToAction("AccessDenied", "Home");
-            }
-
-            var model = new WorkItemDetailsViewModel
+            var viewModel = new WorkItemDetailsViewModel
             {
                 Id = workItem.Id,
                 Title = workItem.Title,
                 Description = workItem.Description,
-                Priority = workItem.Priority.ToString(),
-                Status = workItem.Status.ToString(),
+                Priority = workItem.Priority,
+                Status = workItem.Status,
                 ProjectId = workItem.ProjectId,
-                ProjectName = workItem.Project.Name,
-                AssigneeName = workItem.Assignee?.FullName ?? "Unassigned",
-                CreatedByName = workItem.CreatedBy?.FullName ?? "Unknown",
+                ProjectName = workItem.ProjectName,
+                AssigneeName = workItem.AssigneeName,
+                CreatedByName = workItem.CreatedByName,
                 CreatedAt = workItem.CreatedAt,
                 DueDate = workItem.DueDate,
                 EstimatedHours = workItem.EstimatedHours,
                 ActualHours = workItem.ActualHours,
                 CompletedAt = workItem.CompletedAt,
-                Comments = workItem.Comments.Select(c => new CommentViewModel
+                Comments = comments.Select(c => new CommentViewModel
                 {
                     Id = c.Id,
                     Content = c.Content,
-                    AuthorName = c.Author.FullName,
+                    AuthorName = c.AuthorName,
                     CreatedAt = c.CreatedAt
                 }).ToList()
             };
 
-            return View(model);
+            return View(viewModel);
         }
 
         [HttpGet]
@@ -219,24 +181,14 @@ namespace ProjectTracker.Web.Controllers
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             var isAdmin = User.IsInRole("Admin");
 
-            var workItem = await _context.WorkItems
-                .Include(w => w.Project)
-                .FirstOrDefaultAsync(w => w.Id == id && !w.Project.IsDeleted);
+            var workItem = await _workItemService.GetWorkItemByIdAsync(id, userId, isAdmin);
 
             if (workItem == null)
             {
                 return RedirectToAction("Error404", "Home");
             }
 
-            var isOwner = workItem.Project.OwnerId == userId;
-            var isTeamMember = await _context.TeamMembers
-                .AnyAsync(tm => tm.ProjectId == workItem.ProjectId && tm.UserId == userId);
-
-            if (!isAdmin && !isOwner && !isTeamMember && workItem.AssigneeId != userId)
-            {
-                return RedirectToAction("AccessDenied", "Home");
-            }
-
+            // Get team members for assignee dropdown
             var teamMembers = await _context.TeamMembers
                 .Include(tm => tm.User)
                 .Where(tm => tm.ProjectId == workItem.ProjectId && tm.IsActive)
@@ -250,10 +202,10 @@ namespace ProjectTracker.Web.Controllers
                 Id = workItem.Id,
                 Title = workItem.Title,
                 Description = workItem.Description,
-                Priority = workItem.Priority.ToString(),
-                Status = workItem.Status.ToString(),
+                Priority = workItem.Priority,
+                Status = workItem.Status,
                 ProjectId = workItem.ProjectId,
-                ProjectName = workItem.Project.Name,
+                ProjectName = workItem.ProjectName,
                 AssigneeId = workItem.AssigneeId,
                 DueDate = workItem.DueDate,
                 EstimatedHours = workItem.EstimatedHours,
@@ -285,49 +237,28 @@ namespace ProjectTracker.Web.Controllers
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             var isAdmin = User.IsInRole("Admin");
 
-            var workItem = await _context.WorkItems
-                .Include(w => w.Project)
-                .FirstOrDefaultAsync(w => w.Id == model.Id && !w.Project.IsDeleted);
+            var updateDto = new UpdateWorkItemDto
+            {
+                Id = model.Id,
+                Title = model.Title,
+                Description = model.Description,
+                Priority = model.Priority,
+                Status = model.Status,
+                AssigneeId = model.AssigneeId,
+                DueDate = model.DueDate,
+                EstimatedHours = model.EstimatedHours,
+                ActualHours = model.ActualHours
+            };
 
-            if (workItem == null)
+            var result = await _workItemService.UpdateWorkItemAsync(updateDto, userId, isAdmin);
+
+            if (result == null)
             {
                 return RedirectToAction("Error404", "Home");
             }
 
-            var isOwner = workItem.Project.OwnerId == userId;
-            var isTeamMember = await _context.TeamMembers
-                .AnyAsync(tm => tm.ProjectId == workItem.ProjectId && tm.UserId == userId);
-
-            if (!isAdmin && !isOwner && !isTeamMember && workItem.AssigneeId != userId)
-            {
-                return RedirectToAction("AccessDenied", "Home");
-            }
-
-            var oldStatus = workItem.Status;
-            var newStatus = Enum.Parse<WorkItemStatus>(model.Status);
-
-            workItem.Title = model.Title;
-            workItem.Description = model.Description;
-            workItem.Priority = Enum.Parse<WorkItemPriority>(model.Priority);
-            workItem.Status = newStatus;
-            workItem.AssigneeId = model.AssigneeId;
-            workItem.DueDate = model.DueDate;
-            workItem.EstimatedHours = model.EstimatedHours;
-            workItem.ActualHours = model.ActualHours;
-
-            if (oldStatus != WorkItemStatus.Done && newStatus == WorkItemStatus.Done)
-            {
-                workItem.CompletedAt = DateTime.UtcNow;
-            }
-            else if (newStatus != WorkItemStatus.Done)
-            {
-                workItem.CompletedAt = null;
-            }
-
-            await _context.SaveChangesAsync();
-
-            TempData["SuccessMessage"] = "Work item updated successfully!";
-            return RedirectToAction(nameof(Index), new { projectId = workItem.ProjectId });
+            TempData["SuccessMessage"] = $"Work item \"{result.Title}\" updated successfully!";
+            return RedirectToAction(nameof(Index), new { projectId = model.ProjectId });
         }
 
         [HttpPost]
@@ -337,27 +268,15 @@ namespace ProjectTracker.Web.Controllers
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             var isAdmin = User.IsInRole("Admin");
 
-            var workItem = await _context.WorkItems
-                .Include(w => w.Project)
-                .FirstOrDefaultAsync(w => w.Id == id && !w.Project.IsDeleted);
+            var result = await _workItemService.DeleteWorkItemAsync(id, userId, isAdmin);
 
-            if (workItem == null)
+            if (!result)
             {
                 return RedirectToAction("Error404", "Home");
             }
 
-            var isOwner = workItem.Project.OwnerId == userId;
-
-            if (!isAdmin && !isOwner)
-            {
-                return RedirectToAction("AccessDenied", "Home");
-            }
-
-            _context.WorkItems.Remove(workItem);
-            await _context.SaveChangesAsync();
-
             TempData["SuccessMessage"] = "Work item deleted successfully!";
-            return RedirectToAction(nameof(Index), new { projectId = workItem.ProjectId });
+            return RedirectToAction(nameof(Index));
         }
 
         [HttpPost]
@@ -370,86 +289,16 @@ namespace ProjectTracker.Web.Controllers
             }
 
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            var workItem = await _context.WorkItems
-                .Include(w => w.Project)
-                .FirstOrDefaultAsync(w => w.Id == workItemId);
 
-            if (workItem == null)
+            try
             {
-                return NotFound();
-            }
-
-            var isAdmin = User.IsInRole("Admin");
-            var isOwner = workItem.Project.OwnerId == userId;
-            var isTeamMember = await _context.TeamMembers
-                .AnyAsync(tm => tm.ProjectId == workItem.ProjectId && tm.UserId == userId);
-
-            if (!isAdmin && !isOwner && !isTeamMember && workItem.AssigneeId != userId && workItem.CreatedById != userId)
-            {
-                return Unauthorized();
-            }
-
-            var comment = new Comment
-            {
-                Content = content,
-                WorkItemId = workItemId,
-                AuthorId = userId,
-                CreatedAt = DateTime.UtcNow
-            };
-
-            _context.Comments.Add(comment);
-            await _context.SaveChangesAsync();
-
-            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
-            {
+                var comment = await _workItemService.AddCommentAsync(workItemId, content, userId);
                 return Ok(new { success = true, message = "Comment added successfully" });
             }
-
-            return RedirectToAction(nameof(Details), new { id = workItemId });
-        }
-
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> UpdateStatus(int id, string status)
-        {
-            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            var isAdmin = User.IsInRole("Admin");
-
-            var workItem = await _context.WorkItems
-                .Include(w => w.Project)
-                .FirstOrDefaultAsync(w => w.Id == id && !w.Project.IsDeleted);
-
-            if (workItem == null)
+            catch (Exception ex)
             {
-                return NotFound();
+                return BadRequest(new { success = false, message = ex.Message });
             }
-
-            var isOwner = workItem.Project.OwnerId == userId;
-            var isTeamMember = await _context.TeamMembers
-                .AnyAsync(tm => tm.ProjectId == workItem.ProjectId && tm.UserId == userId);
-
-            if (!isAdmin && !isOwner && !isTeamMember && workItem.AssigneeId != userId)
-            {
-                return Unauthorized();
-            }
-
-            var oldStatus = workItem.Status;
-            var newStatus = Enum.Parse<WorkItemStatus>(status);
-
-            workItem.Status = newStatus;
-
-            if (oldStatus != WorkItemStatus.Done && newStatus == WorkItemStatus.Done)
-            {
-                workItem.CompletedAt = DateTime.UtcNow;
-            }
-            else if (newStatus != WorkItemStatus.Done)
-            {
-                workItem.CompletedAt = null;
-            }
-
-            await _context.SaveChangesAsync();
-
-            return Ok(new { success = true, status = status });
         }
     }
 }
