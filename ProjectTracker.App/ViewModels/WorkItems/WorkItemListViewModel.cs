@@ -31,5 +31,7 @@
             "Critical" => "bg-danger",
             _ => "bg-secondary"
         };
+
+        public bool IsOverdue => DueDate.HasValue && DueDate.Value < DateTime.UtcNow && Status != "Done";
     }
 }
