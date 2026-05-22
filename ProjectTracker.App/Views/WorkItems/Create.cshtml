@@ -9,12 +9,9 @@
     <div class="col-md-8">
         <div class="card shadow-sm">
             <div class="card-header bg-primary text-white">
-                <h4 class="mb-0">
-                    <i class="fas fa-plus-circle"></i> Create Work Item
-                </h4>
+                <h4 class="mb-0"><i class="fas fa-plus-circle"></i> Create Work Item</h4>
             </div>
             <div class="card-body">
-                <!-- Project Info -->
                 <div class="alert alert-info mb-4">
                     <i class="fas fa-info-circle"></i> Creating work item for project:
                     <strong>@Model.ProjectName</strong>
@@ -24,47 +21,41 @@
                     <input type="hidden" asp-for="ProjectId" />
                     <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
 
-                    <!-- Title -->
                     <div class="mb-3">
                         <label asp-for="Title" class="form-label fw-bold"></label>
                         <input asp-for="Title" class="form-control" placeholder="Enter work item title..." />
                         <span asp-validation-for="Title" class="text-danger"></span>
                     </div>
 
-                    <!-- Description -->
                     <div class="mb-3">
                         <label asp-for="Description" class="form-label fw-bold"></label>
-                        <textarea asp-for="Description" class="form-control" rows="4" placeholder="Describe the work item in detail..."></textarea>
+                        <textarea asp-for="Description" class="form-control" rows="4" placeholder="Describe the work item..."></textarea>
                         <span asp-validation-for="Description" class="text-danger"></span>
-                        <small class="text-muted">Provide detailed description of what needs to be done.</small>
                     </div>
 
                     <div class="row">
-                        <!-- Priority -->
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label asp-for="Priority" class="form-label fw-bold"></label>
                                 <select asp-for="Priority" class="form-select">
-                                    <option value="Low">Low - Can wait, not urgent</option>
-                                    <option value="Medium">Medium - Normal priority</option>
-                                    <option value="High">High - Important, should be done soon</option>
+                                    <option value="Low">Low - Can wait</option>
+                                    <option value="Medium" selected>Medium - Normal priority</option>
+                                    <option value="High">High - Important</option>
                                     <option value="Critical">Critical - Must be done immediately</option>
                                 </select>
                                 <span asp-validation-for="Priority" class="text-danger"></span>
                             </div>
                         </div>
-
-                        <!-- Status -->
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label asp-for="Status" class="form-label fw-bold"></label>
                                 <select asp-for="Status" class="form-select">
-                                    <option value="ToDo">To Do - Not started</option>
-                                    <option value="InProgress">In Progress - Currently working on</option>
-                                    <option value="CodeReview">Code Review - Ready for review</option>
-                                    <option value="Testing">Testing - Being tested</option>
-                                    <option value="Done">Done - Completed</option>
-                                    <option value="Blocked">Blocked - Cannot proceed</option>
+                                    <option value="ToDo" selected>To Do</option>
+                                    <option value="InProgress">In Progress</option>
+                                    <option value="CodeReview">Code Review</option>
+                                    <option value="Testing">Testing</option>
+                                    <option value="Done">Done</option>
+                                    <option value="Blocked">Blocked</option>
                                 </select>
                                 <span asp-validation-for="Status" class="text-danger"></span>
                             </div>
@@ -72,7 +63,6 @@
                     </div>
 
                     <div class="row">
-                        <!-- Assignee -->
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label asp-for="AssigneeId" class="form-label fw-bold"></label>
@@ -92,33 +82,27 @@
                                 }
                             </div>
                         </div>
-
-                        <!-- Due Date -->
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label asp-for="DueDate" class="form-label fw-bold"></label>
                                 <input asp-for="DueDate" type="date" class="form-control" />
                                 <span asp-validation-for="DueDate" class="text-danger"></span>
-                                <small class="text-muted">Target completion date.</small>
                             </div>
                         </div>
                     </div>
 
                     <div class="row">
-                        <!-- Estimated Hours -->
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label asp-for="EstimatedHours" class="form-label fw-bold"></label>
                                 <input asp-for="EstimatedHours" type="number" class="form-control" placeholder="e.g., 8" />
                                 <span asp-validation-for="EstimatedHours" class="text-danger"></span>
-                                <small class="text-muted">Estimated effort in hours.</small>
+                                <small class="text-muted">Estimated effort in hours</small>
                             </div>
                         </div>
                     </div>
 
                     <hr />
-
-                    <!-- Buttons -->
                     <div class="d-flex gap-2 justify-content-end">
                         <a asp-action="Index" asp-route-projectId="@Model.ProjectId" class="btn btn-secondary">
                             <i class="fas fa-times"></i> Cancel

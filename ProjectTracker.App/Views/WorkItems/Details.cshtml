@@ -6,7 +6,13 @@
 
 <div class="mb-4">
     <div class="d-flex justify-content-between align-items-center">
-        <h2>@Model.Title</h2>
+        <div>
+            <h2>@Model.Title</h2>
+            <div class="mt-2">
+                <span class="badge @Model.StatusBadgeClass fs-6 me-2">@Model.Status</span>
+                <span class="badge @Model.PriorityBadgeClass fs-6">@Model.Priority</span>
+            </div>
+        </div>
         <div>
             <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning btn-sm">
                 <i class="fas fa-edit"></i> Edit
@@ -20,7 +26,6 @@
 </div>
 
 <div class="row">
-    <!-- Main Content -->
     <div class="col-md-8">
         <!-- Description Card -->
         <div class="card mb-4">
@@ -47,7 +52,8 @@
             <div class="card-body">
                 <!-- Add Comment Form -->
                 <div class="mb-4">
-                    <form id="addCommentForm" method="post" asp-action="AddComment" asp-controller="WorkItems">
+                    <form id="addCommentForm">
+                        @Html.AntiForgeryToken()
                         <input type="hidden" name="workItemId" value="@Model.Id" />
                         <div class="mb-2">
                             <textarea name="content" class="form-control" rows="3" placeholder="Write a comment..."></textarea>
@@ -84,42 +90,21 @@
         </div>
     </div>
 
-    <!-- Sidebar -->
     <div class="col-md-4">
-        <!-- Status Card -->
+        <!-- Info Card -->
         <div class="card mb-4">
             <div class="card-header">
-                <h5 class="mb-0"><i class="fas fa-info-circle"></i> Status</h5>
+                <h5 class="mb-0"><i class="fas fa-info-circle"></i> Information</h5>
             </div>
             <div class="card-body">
                 <div class="mb-3">
-                    <label class="text-muted small">Current Status</label>
+                    <label class="text-muted small">Project</label>
                     <div>
-                        <span class="badge @Model.StatusBadgeClass fs-6">@Model.Status</span>
+                        <a asp-controller="Projects" asp-action="Details" asp-route-id="@Model.ProjectId" class="text-decoration-none">
+                            <i class="fas fa-project-diagram"></i> @Model.ProjectName
+                        </a>
                     </div>
                 </div>
-                <div class="mb-3">
-                    <label class="text-muted small">Priority</label>
-                    <div>
-                        <span class="badge @Model.PriorityBadgeClass fs-6">@Model.Priority</span>
-                    </div>
-                </div>
-                @if (Model.CompletedAt.HasValue)
-                {
-                    <div class="mb-3">
-                        <label class="text-muted small">Completed On</label>
-                        <div>@Model.CompletedAt.Value.ToString("yyyy-MM-dd HH:mm")</div>
-                    </div>
-                }
-            </div>
-        </div>
-
-        <!-- Assignment Card -->
-        <div class="card mb-4">
-            <div class="card-header">
-                <h5 class="mb-0"><i class="fas fa-users"></i> Assignment</h5>
-            </div>
-            <div class="card-body">
                 <div class="mb-3">
                     <label class="text-muted small">Assignee</label>
                     <div>
@@ -152,46 +137,42 @@
             <div class="card-body">
                 <div class="mb-3">
                     <label class="text-muted small">Due Date</label>
-                    <div>
-                        @if (Model.DueDate.HasValue)
+                    <div class="@(Model.IsOverdue ? "text-danger fw-bold" : "")">
+                        @if (Model.IsOverdue)
                         {
-                            if (Model.DueDate.Value < DateTime.UtcNow && Model.Status != "Done")
-                            {
-                                <span class="text-danger">
-                                    <i class="fas fa-exclamation-triangle"></i> @Model.DueDate.Value.ToString("yyyy-MM-dd") (Overdue)
-                                </span>
-                            }
-                            else
-                            {
-                                <span>@Model.DueDate.Value.ToString("yyyy-MM-dd")</span>
-                            }
+                            <i class="fas fa-exclamation-triangle"></i>
                         }
-                        else
+                        @(Model.DueDate?.ToString("yyyy-MM-dd") ?? "Not set")
+                        @if (Model.IsOverdue)
                         {
-                            <span class="text-muted">Not set</span>
+                            <span class="text-danger"> (Overdue!)</span>
                         }
                     </div>
                 </div>
-                <div class="mb-3">
-                    <label class="text-muted small">Estimated Hours</label>
-                    <div>@(Model.EstimatedHours.HasValue ? $"{Model.EstimatedHours} hours" : "Not set")</div>
-                </div>
-                <div class="mb-3">
-                    <label class="text-muted small">Actual Hours</label>
-                    <div>@(Model.ActualHours.HasValue ? $"{Model.ActualHours} hours" : "Not set")</div>
-                </div>
+                @if (Model.CompletedAt.HasValue)
+                {
+                    <div class="mb-3">
+                        <label class="text-muted small">Completed On</label>
+                        <div><i class="fas fa-check-circle text-success"></i> @Model.CompletedAt.Value.ToString("yyyy-MM-dd HH:mm")</div>
+                    </div>
+                }
             </div>
         </div>
 
-        <!-- Project Link Card -->
+        <!-- Hours Card -->
         <div class="card">
             <div class="card-header">
-                <h5 class="mb-0"><i class="fas fa-project-diagram"></i> Project</h5>
+                <h5 class="mb-0"><i class="fas fa-hourglass-half"></i> Hours</h5>
             </div>
             <div class="card-body">
-                <a asp-controller="Projects" asp-action="Details" asp-route-id="@Model.ProjectId" class="text-decoration-none">
-                    <i class="fas fa-link"></i> @Model.ProjectName
-                </a>
+                <div class="mb-2">
+                    <label class="text-muted small">Estimated Hours</label>
+                    <div class="h5 mb-0">@(Model.EstimatedHours.HasValue ? $"{Model.EstimatedHours} hrs" : "Not set")</div>
+                </div>
+                <div>
+                    <label class="text-muted small">Actual Hours</label>
+                    <div class="h5 mb-0">@(Model.ActualHours.HasValue ? $"{Model.ActualHours} hrs" : "Not set")</div>
+                </div>
             </div>
         </div>
     </div>
@@ -199,7 +180,6 @@
 
 @section Scripts {
     <script>
-        // AJAX comment submission
         document.getElementById('addCommentForm')?.addEventListener('submit', async function(e) {
             e.preventDefault();
 
@@ -207,7 +187,7 @@
             const formData = new FormData(form);
 
             try {
-                const response = await fetch('/WorkItems/AddComment', {
+                const response = await fetch('@Url.Action("AddComment", "WorkItems")', {
                     method: 'POST',
                     body: formData,
                     headers: {
@@ -216,7 +196,6 @@
                 });
 
                 if (response.ok) {
-                    // Reload the page to show new comment
                     location.reload();
                 } else {
                     const error = await response.text();

@@ -61,8 +61,8 @@
 @if (!Model.Any())
 {
     <div class="alert alert-info text-center py-5">
-        <i class="fas fa-info-circle fa-2x mb-3 d-block"></i>
-        <h5>No work items found</h5>
+        <i class="fas fa-info-circle fa-3x mb-3"></i>
+        <h4>No work items found</h4>
         <p class="mb-0">Create your first work item by clicking the "New Work Item" button above.</p>
     </div>
 }
@@ -94,12 +94,8 @@ else
                                 <i class="fas fa-project-diagram"></i> @item.ProjectName
                             </a>
                         </td>
-                        <td>
-                            <span class="badge @item.StatusBadgeClass">@item.Status</span>
-                        </td>
-                        <td>
-                            <span class="badge @item.PriorityBadgeClass">@item.Priority</span>
-                        </td>
+                        <td><span class="badge @item.StatusBadgeClass">@item.Status</span></td>
+                        <td><span class="badge @item.PriorityBadgeClass">@item.Priority</span></td>
                         <td>
                             @if (item.AssigneeName == "Unassigned")
                             {
@@ -111,24 +107,12 @@ else
                                 @item.AssigneeName
                             }
                         </td>
-                        <td>
-                            @if (item.DueDate.HasValue)
+                        <td class="@(item.IsOverdue ? "text-danger fw-bold" : "")">
+                            @if (item.IsOverdue)
                             {
-                                if (item.DueDate.Value < DateTime.UtcNow && item.Status != "Done")
-                                {
-                                    <span class="text-danger">
-                                        <i class="fas fa-exclamation-triangle"></i> @item.DueDate.Value.ToString("yyyy-MM-dd")
-                                    </span>
-                                }
-                                else
-                                {
-                                    <span>@item.DueDate.Value.ToString("yyyy-MM-dd")</span>
-                                }
+                                <i class="fas fa-exclamation-triangle"></i>
                             }
-                            else
-                            {
-                                <span class="text-muted">-</span>
-                            }
+                            @(item.DueDate?.ToString("yyyy-MM-dd") ?? "-")
                         </td>
                         <td>@item.CreatedAt.ToString("yyyy-MM-dd")</td>
                         <td class="text-center">
@@ -150,7 +134,6 @@ else
 
 @section Scripts {
     <script>
-        // Auto-submit filter when project changes
         document.querySelector('select[name="projectId"]')?.addEventListener('change', function() {
             this.form.submit();
         });

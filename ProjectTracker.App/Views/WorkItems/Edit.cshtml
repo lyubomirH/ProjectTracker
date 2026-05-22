@@ -9,12 +9,9 @@
     <div class="col-md-8">
         <div class="card shadow-sm">
             <div class="card-header bg-warning text-white">
-                <h4 class="mb-0">
-                    <i class="fas fa-edit"></i> Edit Work Item
-                </h4>
+                <h4 class="mb-0"><i class="fas fa-edit"></i> Edit Work Item</h4>
             </div>
             <div class="card-body">
-                <!-- Project Info -->
                 <div class="alert alert-info mb-4">
                     <i class="fas fa-info-circle"></i> Editing work item for project:
                     <strong>@Model.ProjectName</strong>
@@ -25,14 +22,12 @@
                     <input type="hidden" asp-for="ProjectId" />
                     <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
 
-                    <!-- Title -->
                     <div class="mb-3">
                         <label asp-for="Title" class="form-label fw-bold"></label>
                         <input asp-for="Title" class="form-control" />
                         <span asp-validation-for="Title" class="text-danger"></span>
                     </div>
 
-                    <!-- Description -->
                     <div class="mb-3">
                         <label asp-for="Description" class="form-label fw-bold"></label>
                         <textarea asp-for="Description" class="form-control" rows="4"></textarea>
@@ -40,31 +35,28 @@
                     </div>
 
                     <div class="row">
-                        <!-- Priority -->
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label asp-for="Priority" class="form-label fw-bold"></label>
                                 <select asp-for="Priority" class="form-select">
-                                    <option value="Low">Low - Can wait, not urgent</option>
-                                    <option value="Medium">Medium - Normal priority</option>
-                                    <option value="High">High - Important, should be done soon</option>
-                                    <option value="Critical">Critical - Must be done immediately</option>
+                                    <option value="Low">Low</option>
+                                    <option value="Medium">Medium</option>
+                                    <option value="High">High</option>
+                                    <option value="Critical">Critical</option>
                                 </select>
                                 <span asp-validation-for="Priority" class="text-danger"></span>
                             </div>
                         </div>
-
-                        <!-- Status -->
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label asp-for="Status" class="form-label fw-bold"></label>
                                 <select asp-for="Status" class="form-select" id="StatusSelect">
-                                    <option value="ToDo">To Do - Not started</option>
-                                    <option value="InProgress">In Progress - Currently working on</option>
-                                    <option value="CodeReview">Code Review - Ready for review</option>
-                                    <option value="Testing">Testing - Being tested</option>
-                                    <option value="Done">Done - Completed</option>
-                                    <option value="Blocked">Blocked - Cannot proceed</option>
+                                    <option value="ToDo">To Do</option>
+                                    <option value="InProgress">In Progress</option>
+                                    <option value="CodeReview">Code Review</option>
+                                    <option value="Testing">Testing</option>
+                                    <option value="Done">Done</option>
+                                    <option value="Blocked">Blocked</option>
                                 </select>
                                 <span asp-validation-for="Status" class="text-danger"></span>
                             </div>
@@ -72,7 +64,6 @@
                     </div>
 
                     <div class="row">
-                        <!-- Assignee -->
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label asp-for="AssigneeId" class="form-label fw-bold"></label>
@@ -86,8 +77,6 @@
                                 <span asp-validation-for="AssigneeId" class="text-danger"></span>
                             </div>
                         </div>
-
-                        <!-- Due Date -->
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label asp-for="DueDate" class="form-label fw-bold"></label>
@@ -98,7 +87,6 @@
                     </div>
 
                     <div class="row">
-                        <!-- Estimated Hours -->
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label asp-for="EstimatedHours" class="form-label fw-bold"></label>
@@ -106,27 +94,17 @@
                                 <span asp-validation-for="EstimatedHours" class="text-danger"></span>
                             </div>
                         </div>
-
-                        <!-- Actual Hours -->
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label asp-for="ActualHours" class="form-label fw-bold"></label>
                                 <input asp-for="ActualHours" type="number" class="form-control" />
                                 <span asp-validation-for="ActualHours" class="text-danger"></span>
-                                <small class="text-muted">Actual hours spent (update when task is done).</small>
+                                <small class="text-muted">Actual hours spent</small>
                             </div>
                         </div>
                     </div>
 
                     <hr />
-
-                    <!-- Status Change Warning -->
-                    <div id="statusWarning" class="alert alert-warning d-none">
-                        <i class="fas fa-exclamation-triangle"></i>
-                        <span id="statusWarningText"></span>
-                    </div>
-
-                    <!-- Buttons -->
                     <div class="d-flex gap-2 justify-content-between">
                         <div>
                             <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal">
@@ -153,9 +131,7 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header bg-danger text-white">
-                <h5 class="modal-title">
-                    <i class="fas fa-exclamation-triangle"></i> Confirm Delete
-                </h5>
+                <h5 class="modal-title"><i class="fas fa-exclamation-triangle"></i> Confirm Delete</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
@@ -177,22 +153,14 @@
     <partial name="_ValidationScriptsPartial" />
 
     <script>
-        // Show warning when changing status from Done to something else
         const statusSelect = document.getElementById('StatusSelect');
-        const statusWarning = document.getElementById('statusWarning');
-        const statusWarningText = document.getElementById('statusWarningText');
-
-        let originalStatus = '@Model.Status';
+        const originalStatus = '@Model.Status';
 
         statusSelect?.addEventListener('change', function() {
             if (originalStatus === 'Done' && this.value !== 'Done') {
-                statusWarningText.innerText = 'Changing status from "Done" will reset the completion date. Are you sure?';
-                statusWarning.classList.remove('d-none');
-            } else if (originalStatus !== 'Done' && this.value === 'Done') {
-                statusWarningText.innerText = 'Marking as "Done" will set the completion date to today.';
-                statusWarning.classList.remove('d-none');
-            } else {
-                statusWarning.classList.add('d-none');
+                if (!confirm('Changing status from "Done" will reset the completion date. Are you sure?')) {
+                    this.value = originalStatus;
+                }
             }
         });
     </script>
