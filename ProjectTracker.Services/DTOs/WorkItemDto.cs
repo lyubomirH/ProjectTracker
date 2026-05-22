@@ -19,6 +19,10 @@
         public int? EstimatedHours { get; set; }
         public int? ActualHours { get; set; }
         public int CommentsCount { get; set; }
+
+        // Helper properties
+        public bool IsOverdue => DueDate.HasValue && DueDate.Value.Date < DateTime.UtcNow.Date && Status != "Done";
+        public bool IsCompleted => Status == "Done";
     }
 
     public class CreateWorkItemDto
@@ -44,5 +48,11 @@
         public DateTime? DueDate { get; set; }
         public int? EstimatedHours { get; set; }
         public int? ActualHours { get; set; }
+    }
+
+    public class UpdateWorkItemStatusDto
+    {
+        public int Id { get; set; }
+        public string Status { get; set; } = string.Empty;
     }
 }

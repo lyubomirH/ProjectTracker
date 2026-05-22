@@ -19,6 +19,8 @@
         public string Email { get; set; } = string.Empty;
         public string FullName { get; set; } = string.Empty;
         public string? Department { get; set; }
+        public string? JobTitle { get; set; }
+        public string? AvatarUrl { get; set; }
     }
 
     public class AddTeamMemberDto
@@ -26,5 +28,12 @@
         public int ProjectId { get; set; }
         public string UserId { get; set; } = string.Empty;
         public string Role { get; set; } = "Developer";
+    }
+
+    public class UpdateTeamMemberRoleDto
+    {
+        public int ProjectId { get; set; }
+        public string UserId { get; set; } = string.Empty;
+        public string Role { get; set; } = string.Empty;
     }
 }

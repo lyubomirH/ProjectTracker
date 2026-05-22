@@ -97,7 +97,9 @@ namespace ProjectTracker.Web.Controllers
 
                 await _userManager.AddToRoleAsync(user, model.Role);
 
+                // Sign in using the specific scheme
                 await _signInManager.SignInAsync(user, isPersistent: false);
+
                 TempData["SuccessMessage"] = "Account created successfully! Welcome!";
                 return RedirectToAction("Index", "Home");
             }

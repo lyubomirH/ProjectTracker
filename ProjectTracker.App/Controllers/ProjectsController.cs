@@ -1,9 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using ProjectTracker.Data;
-using ProjectTracker.Data.Entities;
-using ProjectTracker.Data.Enums;
+using ProjectTracker.Services.DTOs;
+using ProjectTracker.Services.Interfaces;
 using ProjectTracker.Web.ViewModels.Projects;
 using System.Security.Claims;
 
@@ -12,11 +10,18 @@ namespace ProjectTracker.Web.Controllers
     [Authorize]
     public class ProjectsController : Controller
     {
-        private readonly ApplicationDbContext _context;
+        private readonly IProjectService _projectService;
+        private readonly IWorkItemService _workItemService;
+        private readonly ITeamService _teamService;
 
-        public ProjectsController(ApplicationDbContext context)
+        public ProjectsController(
+            IProjectService projectService,
+            IWorkItemService workItemService,
+            ITeamService teamService)
         {
-            _context = context;
+            _projectService = projectService;
+            _workItemService = workItemService;
+            _teamService = teamService;
         }
 
         [HttpGet]
@@ -25,37 +30,29 @@ namespace ProjectTracker.Web.Controllers
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             var isAdmin = User.IsInRole("Admin");
 
-            var projectsQuery = _context.Projects
-                .Include(p => p.Owner)
-                .Include(p => p.TeamMembers)
-                .Where(p => !p.IsDeleted);
-
-            // Non-admin users see only projects they own or are team members of
-            if (!isAdmin)
+            if (string.IsNullOrEmpty(userId) && !isAdmin)
             {
-                projectsQuery = projectsQuery.Where(p =>
-                    p.OwnerId == userId ||
-                    p.TeamMembers.Any(tm => tm.UserId == userId));
+                return View(new List<ProjectListViewModel>());
             }
 
-            var projects = await projectsQuery
-                .Select(p => new ProjectListViewModel
-                {
-                    Id = p.Id,
-                    Name = p.Name,
-                    Description = p.Description,
-                    Status = p.Status.ToString(),
-                    StartDate = p.StartDate,
-                    EndDate = p.EndDate,
-                    OwnerName = p.Owner.FullName,
-                    TeamMembersCount = p.TeamMembers.Count,
-                    WorkItemsCount = p.WorkItems.Count,
-                    CompletedWorkItemsCount = p.WorkItems.Count(w => w.Status == WorkItemStatus.Done)
-                })
-                .OrderByDescending(p => p.CreatedAt)
-                .ToListAsync();
+            var projects = await _projectService.GetAllProjectsAsync(userId ?? string.Empty, isAdmin);
 
-            return View(projects);
+            var viewModel = projects.Select(p => new ProjectListViewModel
+            {
+                Id = p.Id,
+                Name = p.Name,
+                Description = p.Description,
+                Status = p.Status,
+                StartDate = p.StartDate,
+                EndDate = p.EndDate,
+                OwnerName = p.OwnerName,
+                TeamMembersCount = p.TeamMembersCount,
+                WorkItemsCount = p.WorkItemsCount,
+                CompletedWorkItemsCount = p.CompletedWorkItemsCount,
+                CreatedAt = p.CreatedAt
+            }).ToList();
+
+            return View(viewModel);
         }
 
         [HttpGet]
@@ -65,7 +62,7 @@ namespace ProjectTracker.Web.Controllers
             var model = new ProjectFormViewModel
             {
                 StartDate = DateTime.Today,
-                Status = ProjectStatus.Active.ToString()
+                Status = "Active"
             };
             return View(model);
         }
@@ -82,32 +79,23 @@ namespace ProjectTracker.Web.Controllers
 
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
-            var project = new Project
+            if (string.IsNullOrEmpty(userId))
+            {
+                return RedirectToAction("Login", "Auth");
+            }
+
+            var createDto = new CreateProjectDto
             {
                 Name = model.Name,
                 Description = model.Description,
                 StartDate = model.StartDate,
                 EndDate = model.EndDate,
-                Status = Enum.Parse<ProjectStatus>(model.Status),
-                OwnerId = userId,
-                CreatedAt = DateTime.UtcNow
+                Status = model.Status
             };
 
-            _context.Projects.Add(project);
-            await _context.SaveChangesAsync();
+            var project = await _projectService.CreateProjectAsync(createDto, userId);
 
-            // Add owner as team member with ProjectManager role
-            var teamMember = new TeamMember
-            {
-                ProjectId = project.Id,
-                UserId = userId,
-                Role = TeamRole.ProjectManager,
-                JoinedAt = DateTime.UtcNow
-            };
-            _context.TeamMembers.Add(teamMember);
-            await _context.SaveChangesAsync();
-
-            TempData["SuccessMessage"] = "Project created successfully!";
+            TempData["SuccessMessage"] = $"Project \"{project.Name}\" created successfully!";
             return RedirectToAction(nameof(Index));
         }
 
@@ -117,57 +105,53 @@ namespace ProjectTracker.Web.Controllers
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             var isAdmin = User.IsInRole("Admin");
 
-            var project = await _context.Projects
-                .Include(p => p.Owner)
-                .Include(p => p.TeamMembers)
-                    .ThenInclude(tm => tm.User)
-                .Include(p => p.WorkItems)
-                    .ThenInclude(w => w.Assignee)
-                .FirstOrDefaultAsync(p => p.Id == id && !p.IsDeleted);
+            if (string.IsNullOrEmpty(userId) && !isAdmin)
+            {
+                return RedirectToAction("Login", "Auth");
+            }
+
+            var project = await _projectService.GetProjectByIdAsync(id, userId ?? string.Empty, isAdmin);
 
             if (project == null)
             {
                 return RedirectToAction("Error404", "Home");
             }
 
-            // Check access
-            var isOwner = project.OwnerId == userId;
-            var isTeamMember = project.TeamMembers.Any(tm => tm.UserId == userId);
+            // Get team members
+            var teamMembers = await _teamService.GetTeamMembersAsync(id);
 
-            if (!isAdmin && !isOwner && !isTeamMember)
-            {
-                return RedirectToAction("AccessDenied", "Home");
-            }
+            // Get work items for this project
+            var workItems = await _workItemService.GetWorkItemsAsync(id, userId ?? string.Empty, isAdmin);
 
-            var model = new ProjectDetailsViewModel
+            var viewModel = new ProjectDetailsViewModel
             {
                 Id = project.Id,
                 Name = project.Name,
                 Description = project.Description,
-                Status = project.Status.ToString(),
+                Status = project.Status,
                 StartDate = project.StartDate,
                 EndDate = project.EndDate,
-                OwnerName = project.Owner.FullName,
+                OwnerName = project.OwnerName,
                 CreatedAt = project.CreatedAt,
-                TeamMembers = project.TeamMembers.Select(tm => new TeamMemberViewModel
+                TeamMembers = teamMembers.Select(tm => new TeamMemberViewModel
                 {
                     UserId = tm.UserId,
-                    UserName = tm.User.FullName,
-                    Role = tm.Role.ToString(),
+                    UserName = tm.UserName,
+                    Role = tm.Role,
                     JoinedAt = tm.JoinedAt
                 }).ToList(),
-                WorkItems = project.WorkItems.Select(w => new WorkItemSummaryViewModel
+                WorkItems = workItems.Select(w => new WorkItemSummaryViewModel
                 {
                     Id = w.Id,
                     Title = w.Title,
-                    Status = w.Status.ToString(),
-                    Priority = w.Priority.ToString(),
-                    AssigneeName = w.Assignee != null ? w.Assignee.FullName : "Unassigned",
+                    Status = w.Status,
+                    Priority = w.Priority,
+                    AssigneeName = w.AssigneeName,
                     DueDate = w.DueDate
                 }).ToList()
             };
 
-            return View(model);
+            return View(viewModel);
         }
 
         [HttpGet]
@@ -177,18 +161,16 @@ namespace ProjectTracker.Web.Controllers
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             var isAdmin = User.IsInRole("Admin");
 
-            var project = await _context.Projects
-                .FirstOrDefaultAsync(p => p.Id == id && !p.IsDeleted);
+            if (string.IsNullOrEmpty(userId))
+            {
+                return RedirectToAction("Login", "Auth");
+            }
+
+            var project = await _projectService.GetProjectByIdAsync(id, userId, isAdmin);
 
             if (project == null)
             {
                 return RedirectToAction("Error404", "Home");
-            }
-
-            // Check permission
-            if (!isAdmin && project.OwnerId != userId)
-            {
-                return RedirectToAction("AccessDenied", "Home");
             }
 
             var model = new ProjectFormViewModel
@@ -198,7 +180,7 @@ namespace ProjectTracker.Web.Controllers
                 Description = project.Description,
                 StartDate = project.StartDate,
                 EndDate = project.EndDate,
-                Status = project.Status.ToString()
+                Status = project.Status
             };
 
             return View(model);
@@ -217,30 +199,29 @@ namespace ProjectTracker.Web.Controllers
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             var isAdmin = User.IsInRole("Admin");
 
-            var project = await _context.Projects
-                .FirstOrDefaultAsync(p => p.Id == model.Id && !p.IsDeleted);
+            if (string.IsNullOrEmpty(userId))
+            {
+                return RedirectToAction("Login", "Auth");
+            }
 
-            if (project == null)
+            var updateDto = new UpdateProjectDto
+            {
+                Id = model.Id,
+                Name = model.Name,
+                Description = model.Description,
+                StartDate = model.StartDate,
+                EndDate = model.EndDate,
+                Status = model.Status
+            };
+
+            var result = await _projectService.UpdateProjectAsync(updateDto, userId, isAdmin);
+
+            if (result == null)
             {
                 return RedirectToAction("Error404", "Home");
             }
 
-            // Check permission
-            if (!isAdmin && project.OwnerId != userId)
-            {
-                return RedirectToAction("AccessDenied", "Home");
-            }
-
-            project.Name = model.Name;
-            project.Description = model.Description;
-            project.StartDate = model.StartDate;
-            project.EndDate = model.EndDate;
-            project.Status = Enum.Parse<ProjectStatus>(model.Status);
-            project.UpdatedAt = DateTime.UtcNow;
-
-            await _context.SaveChangesAsync();
-
-            TempData["SuccessMessage"] = "Project updated successfully!";
+            TempData["SuccessMessage"] = $"Project \"{result.Name}\" updated successfully!";
             return RedirectToAction(nameof(Index));
         }
 
@@ -252,26 +233,65 @@ namespace ProjectTracker.Web.Controllers
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             var isAdmin = User.IsInRole("Admin");
 
-            var project = await _context.Projects
-                .FirstOrDefaultAsync(p => p.Id == id && !p.IsDeleted);
+            if (string.IsNullOrEmpty(userId))
+            {
+                return RedirectToAction("Login", "Auth");
+            }
 
+            var result = await _projectService.DeleteProjectAsync(id, userId, isAdmin);
+
+            if (!result)
+            {
+                return RedirectToAction("Error404", "Home");
+            }
+
+            TempData["SuccessMessage"] = "Project deleted successfully!";
+            return RedirectToAction(nameof(Index));
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Admin,ProjectManager")]
+        public async Task<IActionResult> AddTeamMember(int projectId, string userId, string role)
+        {
+            var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var isAdmin = User.IsInRole("Admin");
+
+            if (string.IsNullOrEmpty(currentUserId))
+            {
+                return RedirectToAction("Login", "Auth");
+            }
+
+            // Check if current user has permission
+            var project = await _projectService.GetProjectByIdAsync(projectId, currentUserId, isAdmin);
             if (project == null)
             {
                 return RedirectToAction("Error404", "Home");
             }
 
-            // Check permission
-            if (!isAdmin && project.OwnerId != userId)
+            await _teamService.AddTeamMemberAsync(projectId, userId, role, currentUserId);
+
+            TempData["SuccessMessage"] = "Team member added successfully!";
+            return RedirectToAction(nameof(Details), new { id = projectId });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Admin,ProjectManager")]
+        public async Task<IActionResult> RemoveTeamMember(int projectId, string userId)
+        {
+            var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var isAdmin = User.IsInRole("Admin");
+
+            if (string.IsNullOrEmpty(currentUserId))
             {
-                return RedirectToAction("AccessDenied", "Home");
+                return RedirectToAction("Login", "Auth");
             }
 
-            project.IsDeleted = true;
-            project.UpdatedAt = DateTime.UtcNow;
-            await _context.SaveChangesAsync();
+            await _teamService.RemoveTeamMemberAsync(projectId, userId, currentUserId);
 
-            TempData["SuccessMessage"] = "Project deleted successfully!";
-            return RedirectToAction(nameof(Index));
+            TempData["SuccessMessage"] = "Team member removed successfully!";
+            return RedirectToAction(nameof(Details), new { id = projectId });
         }
     }
 }

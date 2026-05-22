@@ -22,7 +22,7 @@ namespace ProjectTracker.Services.Services
                 .Include(p => p.Owner)
                 .Include(p => p.TeamMembers)
                 .Include(p => p.WorkItems)
-                .Where(p => !p.IsDeleted);
+                .Where(p => !p.IsDeleted);  // Само веднъж
 
             if (!isAdmin)
             {
@@ -42,13 +42,13 @@ namespace ProjectTracker.Services.Services
                 EndDate = p.EndDate,
                 Status = p.Status.ToString(),
                 OwnerId = p.OwnerId,
-                OwnerName = p.Owner.FullName,
+                OwnerName = p.Owner?.FullName ?? "Unknown",
                 CreatedAt = p.CreatedAt,
-                TeamMembersCount = p.TeamMembers.Count,
-                WorkItemsCount = p.WorkItems.Count,
-                CompletedWorkItemsCount = p.WorkItems.Count(w => w.Status == WorkItemStatus.Done),
-                CompletionPercentage = p.WorkItems.Count > 0
-                    ? (double)p.WorkItems.Count(w => w.Status == WorkItemStatus.Done) / p.WorkItems.Count * 100
+                TeamMembersCount = p.TeamMembers?.Count ?? 0,
+                WorkItemsCount = p.WorkItems?.Count ?? 0,
+                CompletedWorkItemsCount = p.WorkItems?.Count(w => w.Status == WorkItemStatus.Done) ?? 0,
+                CompletionPercentage = (p.WorkItems?.Count ?? 0) > 0
+                    ? (double)(p.WorkItems?.Count(w => w.Status == WorkItemStatus.Done) ?? 0) / (p.WorkItems?.Count ?? 0) * 100
                     : 0
             }).OrderByDescending(p => p.CreatedAt);
         }
@@ -63,19 +63,12 @@ namespace ProjectTracker.Services.Services
                     .ThenInclude(w => w.Assignee)
                 .FirstOrDefaultAsync(p => p.Id == id && !p.IsDeleted);
 
-            if (project == null)
-            {
-                return null;
-            }
+            if (project == null) return null;
 
-            // Check access
             var isOwner = project.OwnerId == userId;
-            var isTeamMember = project.TeamMembers.Any(tm => tm.UserId == userId);
+            var isTeamMember = project.TeamMembers?.Any(tm => tm.UserId == userId) ?? false;
 
-            if (!isAdmin && !isOwner && !isTeamMember)
-            {
-                return null;
-            }
+            if (!isAdmin && !isOwner && !isTeamMember) return null;
 
             return new ProjectDto
             {
@@ -86,14 +79,30 @@ namespace ProjectTracker.Services.Services
                 EndDate = project.EndDate,
                 Status = project.Status.ToString(),
                 OwnerId = project.OwnerId,
-                OwnerName = project.Owner.FullName,
+                OwnerName = project.Owner?.FullName ?? "Unknown",
                 CreatedAt = project.CreatedAt,
-                TeamMembersCount = project.TeamMembers.Count,
-                WorkItemsCount = project.WorkItems.Count,
-                CompletedWorkItemsCount = project.WorkItems.Count(w => w.Status == WorkItemStatus.Done),
-                CompletionPercentage = project.WorkItems.Count > 0
-                    ? (double)project.WorkItems.Count(w => w.Status == WorkItemStatus.Done) / project.WorkItems.Count * 100
-                    : 0
+                TeamMembersCount = project.TeamMembers?.Count ?? 0,
+                WorkItemsCount = project.WorkItems?.Count ?? 0,
+                CompletedWorkItemsCount = project.WorkItems?.Count(w => w.Status == WorkItemStatus.Done) ?? 0,
+                CompletionPercentage = (project.WorkItems?.Count ?? 0) > 0
+                    ? (double)(project.WorkItems?.Count(w => w.Status == WorkItemStatus.Done) ?? 0) / (project.WorkItems?.Count ?? 0) * 100
+                    : 0,
+                TeamMembers = project.TeamMembers?.Select(tm => new TeamMemberDto
+                {
+                    UserId = tm.UserId,
+                    UserName = tm.User?.FullName ?? "Unknown",
+                    Role = tm.Role.ToString(),
+                    JoinedAt = tm.JoinedAt
+                }).ToList() ?? new List<TeamMemberDto>(),
+                WorkItems = project.WorkItems?.Select(w => new WorkItemSummaryDto
+                {
+                    Id = w.Id,
+                    Title = w.Title,
+                    Status = w.Status.ToString(),
+                    Priority = w.Priority.ToString(),
+                    AssigneeName = w.Assignee?.FullName ?? "Unassigned",
+                    DueDate = w.DueDate
+                }).ToList() ?? new List<WorkItemSummaryDto>()
             };
         }
 

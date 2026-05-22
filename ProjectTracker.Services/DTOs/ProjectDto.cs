@@ -15,6 +15,10 @@
         public int WorkItemsCount { get; set; }
         public int CompletedWorkItemsCount { get; set; }
         public double CompletionPercentage { get; set; }
+
+        // Navigation properties
+        public List<TeamMemberDto> TeamMembers { get; set; } = new();
+        public List<WorkItemSummaryDto> WorkItems { get; set; } = new();
     }
 
     public class CreateProjectDto
@@ -34,5 +38,15 @@
         public DateTime StartDate { get; set; }
         public DateTime? EndDate { get; set; }
         public string Status { get; set; } = string.Empty;
+    }
+
+    public class WorkItemSummaryDto
+    {
+        public int Id { get; set; }
+        public string Title { get; set; } = string.Empty;
+        public string Status { get; set; } = string.Empty;
+        public string Priority { get; set; } = string.Empty;
+        public string AssigneeName { get; set; } = string.Empty;
+        public DateTime? DueDate { get; set; }
     }
 }

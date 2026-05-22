@@ -51,6 +51,8 @@ namespace ProjectTracker.Web
                 options.LogoutPath = "/Auth/Logout";
                 options.AccessDeniedPath = "/Home/AccessDenied";
                 options.SlidingExpiration = true;
+                options.Cookie.SameSite = SameSiteMode.Lax;
+                options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
             });
 
             // Add custom services
