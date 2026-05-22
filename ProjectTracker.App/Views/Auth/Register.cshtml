@@ -1,31 +1,88 @@
-﻿@{
-    ViewData["Title"] = "Unauthorized Access";
+﻿@model ProjectTracker.Web.ViewModels.Auth.RegisterViewModel
+
+@{
+    ViewData["Title"] = "Register";
 }
 
-<div class="container mt-5">
-    <div class="row justify-content-center">
-        <div class="col-md-8 col-lg-6">
-            <div class="card shadow-lg border-0 rounded-4 overflow-hidden">
-                <div class="card-header bg-danger text-white py-4 text-center">
-                    <i class="fas fa-lock fa-3x mb-2"></i>
-                    <h1 class="display-4 mb-0">401</h1>
-                    <h3 class="mb-0">Unauthorized Access</h3>
-                </div>
-                <div class="card-body p-5 text-center">
-                    <h4 class="text-danger mb-3">Access Denied!</h4>
-                    <p class="lead text-muted mb-4">
-                        You don't have permission to view this page.
-                    </p>
-                    <div class="d-flex gap-3 justify-content-center">
-                        <a asp-controller="Auth" asp-action="Login" class="btn btn-primary">
-                            <i class="fas fa-sign-in-alt"></i> Log In
-                        </a>
-                        <a asp-controller="Home" asp-action="Index" class="btn btn-outline-secondary">
-                            <i class="fas fa-home"></i> Back to Home
-                        </a>
+<div class="row justify-content-center">
+    <div class="col-md-6 col-lg-5">
+        <div class="card shadow-sm">
+            <div class="card-body p-5">
+                <h2 class="text-center mb-4">Create Account</h2>
+
+                <form asp-action="Register" method="post">
+                    @Html.AntiForgeryToken()
+
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label asp-for="FirstName" class="form-label"></label>
+                                <input asp-for="FirstName" class="form-control" placeholder="First name" />
+                                <span asp-validation-for="FirstName" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label asp-for="LastName" class="form-label"></label>
+                                <input asp-for="LastName" class="form-control" placeholder="Last name" />
+                                <span asp-validation-for="LastName" class="text-danger"></span>
+                            </div>
+                        </div>
                     </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Email" class="form-label"></label>
+                        <input asp-for="Email" class="form-control" type="email" placeholder="email@example.com" />
+                        <span asp-validation-for="Email" class="text-danger"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Password" class="form-label"></label>
+                        <input asp-for="Password" type="password" class="form-control" placeholder="••••••" />
+                        <span asp-validation-for="Password" class="text-danger"></span>
+                        <small class="text-muted">Password must be at least 6 characters.</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="ConfirmPassword" class="form-label"></label>
+                        <input asp-for="ConfirmPassword" type="password" class="form-control" placeholder="••••••" />
+                        <span asp-validation-for="ConfirmPassword" class="text-danger"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Role" class="form-label"></label>
+                        <select asp-for="Role" class="form-select">
+                            <option value="@RoleNames.Developer">Developer</option>
+                            <option value="@RoleNames.Tester">Tester</option>
+                            <option value="@RoleNames.ProjectManager">Project Manager</option>
+                            <option value="@RoleNames.Viewer">Viewer</option>
+                        </select>
+                        <span asp-validation-for="Role" class="text-danger"></span>
+                        <small class="text-muted">Select your role in the organization.</small>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100 py-2 mt-2">
+                        <i class="fas fa-user-plus"></i> Register
+                    </button>
+                </form>
+
+                <div class="text-center mt-3">
+                    <a asp-action="Login">Already have an account? Login</a>
+                </div>
+
+                <hr />
+                <div class="text-center">
+                    <small class="text-muted">
+                        <i class="fas fa-info-circle"></i> Demo Admin: admin@tracker.com / Admin123!
+                    </small>
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

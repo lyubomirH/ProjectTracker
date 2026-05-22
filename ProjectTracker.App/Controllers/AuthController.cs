@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using ProjectTracker.Data.Constants;
 using ProjectTracker.Data.Entities;
 using ProjectTracker.Web.ViewModels.Auth;
@@ -52,17 +53,25 @@ namespace ProjectTracker.Web.Controllers
                 return RedirectToAction("Index", "Home");
             }
 
-            ModelState.AddModelError(string.Empty, "Invalid login attempt.");
+            if (result.IsLockedOut)
+            {
+                ModelState.AddModelError(string.Empty, "Account locked out. Please try again later.");
+            }
+            else if (result.IsNotAllowed)
+            {
+                ModelState.AddModelError(string.Empty, "Login not allowed. Please confirm your email.");
+            }
+            else
+            {
+                ModelState.AddModelError(string.Empty, "Invalid login attempt.");
+            }
+
             return View(model);
         }
 
         [HttpGet]
         public IActionResult Register()
         {
-            if (User.Identity?.IsAuthenticated == true)
-            {
-                return RedirectToAction("Index", "Home");
-            }
             return View();
         }
 
@@ -75,6 +84,14 @@ namespace ProjectTracker.Web.Controllers
                 return View(model);
             }
 
+            // Check if user already exists
+            var existingUser = await _userManager.FindByEmailAsync(model.Email);
+            if (existingUser != null)
+            {
+                ModelState.AddModelError(string.Empty, "User with this email already exists.");
+                return View(model);
+            }
+
             var user = new ApplicationUser
             {
                 UserName = model.Email,
@@ -82,7 +99,8 @@ namespace ProjectTracker.Web.Controllers
                 FirstName = model.FirstName,
                 LastName = model.LastName,
                 CreatedAt = DateTime.UtcNow,
-                IsActive = true
+                IsActive = true,
+                EmailConfirmed = true // Auto-confirm for development
             };
 
             var result = await _userManager.CreateAsync(user, model.Password);
@@ -97,7 +115,7 @@ namespace ProjectTracker.Web.Controllers
 
                 await _userManager.AddToRoleAsync(user, model.Role);
 
-                // Sign in using the specific scheme
+                // Sign in manually
                 await _signInManager.SignInAsync(user, isPersistent: false);
 
                 TempData["SuccessMessage"] = "Account created successfully! Welcome!";
@@ -125,8 +143,12 @@ namespace ProjectTracker.Web.Controllers
         public async Task<IActionResult> Profile()
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            var user = await _userManager.FindByIdAsync(userId);
+            if (string.IsNullOrEmpty(userId))
+            {
+                return RedirectToAction("Login", "Auth");
+            }
 
+            var user = await _userManager.FindByIdAsync(userId);
             if (user == null)
             {
                 return RedirectToAction("Error404", "Home");
@@ -157,8 +179,12 @@ namespace ProjectTracker.Web.Controllers
             }
 
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            var user = await _userManager.FindByIdAsync(userId);
+            if (string.IsNullOrEmpty(userId))
+            {
+                return RedirectToAction("Login", "Auth");
+            }
 
+            var user = await _userManager.FindByIdAsync(userId);
             if (user == null)
             {
                 return RedirectToAction("Error404", "Home");

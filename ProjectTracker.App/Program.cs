@@ -43,6 +43,7 @@ namespace ProjectTracker.Web
             .AddDefaultTokenProviders();
 
             // Configure cookie settings
+            // Configure cookie settings - увери се, че е така
             builder.Services.ConfigureApplicationCookie(options =>
             {
                 options.Cookie.HttpOnly = true;
@@ -52,7 +53,8 @@ namespace ProjectTracker.Web
                 options.AccessDeniedPath = "/Home/AccessDenied";
                 options.SlidingExpiration = true;
                 options.Cookie.SameSite = SameSiteMode.Lax;
-                options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+                options.Cookie.SecurePolicy = CookieSecurePolicy.None;
+                options.Cookie.IsEssential = true;
             });
 
             // Add custom services
