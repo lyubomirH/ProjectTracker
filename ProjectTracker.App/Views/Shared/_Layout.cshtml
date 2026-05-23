@@ -4,12 +4,137 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - Project Tracker</title>
+
+    <!-- Bootstrap CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" />
+
+    <!-- Font Awesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+    <!-- Custom CSS -->
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+
+    <style>
+            body {
+                font-family: 'Inter', sans-serif;
+                background-color: #f8f9fa;
+            }
+
+            .navbar-brand {
+                font-weight: 700;
+                font-size: 1.5rem;
+            }
+
+            .footer {
+                position: fixed;
+                bottom: 0;
+                width: 100%;
+                white-space: nowrap;
+                line-height: 60px;
+            }
+
+            .main-content {
+                min-height: calc(100vh - 160px);
+                padding-bottom: 2rem;
+            }
+
+            .card {
+                border-radius: 12px;
+                border: none;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+                transition: transform 0.2s, box-shadow 0.2s;
+            }
+
+                .card:hover {
+                    box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+                }
+
+            .btn {
+                border-radius: 8px;
+                font-weight: 500;
+                padding: 0.5rem 1rem;
+            }
+
+            .btn-sm {
+                border-radius: 6px;
+                padding: 0.25rem 0.75rem;
+            }
+
+            .table {
+                border-radius: 12px;
+                overflow: hidden;
+            }
+
+                .table thead th {
+                    background-color: #f1f3f5;
+                    border-bottom: none;
+                    font-weight: 600;
+                }
+
+            .badge {
+                padding: 0.35rem 0.65rem;
+                font-weight: 500;
+                border-radius: 20px;
+            }
+
+            .form-control, .form-select {
+                border-radius: 8px;
+                border: 1px solid #dee2e6;
+                padding: 0.5rem 0.75rem;
+            }
+
+                .form-control:focus, .form-select:focus {
+                    border-color: #86b7fe;
+                    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+                }
+
+            .alert {
+                border-radius: 12px;
+                border: none;
+            }
+
+            .pagination .page-link {
+                border-radius: 8px;
+                margin: 0 4px;
+                color: #495057;
+            }
+
+            .pagination .active .page-link {
+                background-color: #0d6efd;
+                border-color: #0d6efd;
+            }
+
+            .dropdown-menu {
+                border-radius: 12px;
+                border: none;
+                box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+            }
+
+            .dropdown-item {
+                border-radius: 8px;
+                padding: 0.5rem 1rem;
+            }
+
+                .dropdown-item:hover {
+                    background-color: #f8f9fa;
+                }
+
+            .navbar-dark.bg-dark {
+                background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%) !important;
+            }
+
+            .footer {
+                background-color: #f8f9fa;
+                border-top: 1px solid #dee2e6;
+            }
+    </style>
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <!-- Navigation Bar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm">
         <div class="container">
             <a class="navbar-brand" asp-controller="Home" asp-action="Index">
                 <i class="fas fa-tasks"></i> Project Tracker
@@ -20,16 +145,22 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav me-auto">
                     <li class="nav-item">
-                        <a class="nav-link" asp-controller="Home" asp-action="Index">Home</a>
+                        <a class="nav-link" asp-controller="Home" asp-action="Index">
+                            <i class="fas fa-home"></i> Home
+                        </a>
                     </li>
 
                     @if (User.Identity?.IsAuthenticated == true)
                     {
                         <li class="nav-item">
-                            <a class="nav-link" asp-controller="Projects" asp-action="Index">Projects</a>
+                            <a class="nav-link" asp-controller="Projects" asp-action="Index">
+                                <i class="fas fa-project-diagram"></i> Projects
+                            </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" asp-controller="WorkItems" asp-action="Index">Work Items</a>
+                            <a class="nav-link" asp-controller="WorkItems" asp-action="Index">
+                                <i class="fas fa-tasks"></i> Work Items
+                            </a>
                         </li>
 
                         @if (User.IsInRole("Admin") || User.IsInRole("ProjectManager"))
@@ -39,7 +170,11 @@
                                     <i class="fas fa-plus"></i> Create
                                 </a>
                                 <ul class="dropdown-menu">
-                                    <li><a class="dropdown-item" asp-controller="Projects" asp-action="Create">New Project</a></li>
+                                    <li>
+                                        <a class="dropdown-item" asp-controller="Projects" asp-action="Create">
+                                            <i class="fas fa-project-diagram"></i> New Project
+                                        </a>
+                                    </li>
                                 </ul>
                             </li>
                         }
@@ -47,7 +182,9 @@
                         @if (User.IsInRole("Admin"))
                         {
                             <li class="nav-item">
-                                <a class="nav-link" href="#"><i class="fas fa-users-cog"></i> Admin</a>
+                                <a class="nav-link" asp-controller="Admin" asp-action="Index">
+                                    <i class="fas fa-users-cog"></i> Admin
+                                </a>
                             </li>
                         }
                     }
@@ -58,22 +195,46 @@
                     {
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown">
-                                <i class="fas fa-user-circle"></i> @User.FindFirst("FirstName")? @User.FindFirst("LastName")
+                                <i class="fas fa-user-circle"></i>
+                                @{
+                                    var firstName = User.FindFirstValue("FirstName");
+                                    var lastName = User.FindFirstValue("LastName");
+                                    if (!string.IsNullOrEmpty(firstName) && !string.IsNullOrEmpty(lastName))
+                                    {
+                                        @($"{firstName} {lastName}")
+                                    }
+                                    else
+                                    {
+                                        @User.Identity.Name
+                                    }
+                                }
                             </a>
                             <ul class="dropdown-menu dropdown-menu-end">
-                                <li><a class="dropdown-item" asp-controller="Auth" asp-action="Profile"><i class="fas fa-id-card"></i> My Profile</a></li>
+                                <li>
+                                    <a class="dropdown-item" asp-controller="Auth" asp-action="Profile">
+                                        <i class="fas fa-id-card"></i> My Profile
+                                    </a>
+                                </li>
                                 <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item" asp-controller="Auth" asp-action="Logout"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
+                                <li>
+                                    <a class="dropdown-item" asp-controller="Auth" asp-action="Logout">
+                                        <i class="fas fa-sign-out-alt"></i> Logout
+                                    </a>
+                                </li>
                             </ul>
                         </li>
                     }
                     else
                     {
                         <li class="nav-item">
-                            <a class="nav-link" asp-controller="Auth" asp-action="Login">Login</a>
+                            <a class="nav-link" asp-controller="Auth" asp-action="Login">
+                                <i class="fas fa-sign-in-alt"></i> Login
+                            </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" asp-controller="Auth" asp-action="Register">Register</a>
+                            <a class="nav-link" asp-controller="Auth" asp-action="Register">
+                                <i class="fas fa-user-plus"></i> Register
+                            </a>
                         </li>
                     }
                 </ul>
@@ -81,34 +242,69 @@
         </div>
     </nav>
 
-    <main class="container mt-4">
-        @if (TempData["SuccessMessage"] != null)
-        {
-            <div class="alert alert-success alert-dismissible fade show" role="alert">
-                <i class="fas fa-check-circle"></i> @TempData["SuccessMessage"]
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        }
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="container mt-4">
+            <!-- TempData Success Message -->
+            @if (TempData["SuccessMessage"] != null)
+            {
+                <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
+                    <i class="fas fa-check-circle me-2"></i> @TempData["SuccessMessage"]
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            }
 
-        @if (TempData["ErrorMessage"] != null)
-        {
-            <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                <i class="fas fa-exclamation-triangle"></i> @TempData["ErrorMessage"]
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        }
+            <!-- TempData Error Message -->
+            @if (TempData["ErrorMessage"] != null)
+            {
+                <div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
+                    <i class="fas fa-exclamation-triangle me-2"></i> @TempData["ErrorMessage"]
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            }
 
-        @RenderBody()
+            <!-- TempData Warning Message -->
+            @if (TempData["WarningMessage"] != null)
+            {
+                <div class="alert alert-warning alert-dismissible fade show shadow-sm" role="alert">
+                    <i class="fas fa-exclamation-circle me-2"></i> @TempData["WarningMessage"]
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            }
+
+            <!-- TempData Info Message -->
+            @if (TempData["InfoMessage"] != null)
+            {
+                <div class="alert alert-info alert-dismissible fade show shadow-sm" role="alert">
+                    <i class="fas fa-info-circle me-2"></i> @TempData["InfoMessage"]
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            }
+
+            @RenderBody()
+        </div>
     </main>
 
-    <footer class="footer mt-5 py-3 bg-light">
+    <!-- Footer -->
+    <footer class="footer mt-auto py-3 bg-light">
         <div class="container text-center">
-            <span class="text-muted">© @DateTime.UtcNow.Year Project Tracker - Task Management System</span>
+            <span class="text-muted">
+                <i class="fas fa-code"></i> Project Tracker &copy; @DateTime.UtcNow.Year - Task Management System
+            </span>
         </div>
     </footer>
 
+    <!-- Toast Container for AJAX Notifications -->
+    <div id="toastContainer" class="position-fixed bottom-0 end-0 p-3" style="z-index: 1100"></div>
+
+    <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.0/jquery.min.js"></script>
+
+    <!-- Custom JavaScript -->
     <script src="~/js/site.js" asp-append-version="true"></script>
+    <script src="~/js/workitems.js" asp-append-version="true"></script>
+
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>
