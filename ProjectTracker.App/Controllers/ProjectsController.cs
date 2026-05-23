@@ -25,32 +25,57 @@ namespace ProjectTracker.Web.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(ProjectFilterViewModel filter)
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             var isAdmin = User.IsInRole("Admin");
 
             if (string.IsNullOrEmpty(userId) && !isAdmin)
             {
-                return View(new List<ProjectListViewModel>());
+                return View(new ProjectIndexViewModel());
             }
 
-            var projects = await _projectService.GetAllProjectsAsync(userId ?? string.Empty, isAdmin);
-
-            var viewModel = projects.Select(p => new ProjectListViewModel
+            var filterDto = new ProjectFilterDto
             {
-                Id = p.Id,
-                Name = p.Name,
-                Description = p.Description,
-                Status = p.Status,
-                StartDate = p.StartDate,
-                EndDate = p.EndDate,
-                OwnerName = p.OwnerName,
-                TeamMembersCount = p.TeamMembersCount,
-                WorkItemsCount = p.WorkItemsCount,
-                CompletedWorkItemsCount = p.CompletedWorkItemsCount,
-                CreatedAt = p.CreatedAt
-            }).ToList();
+                SearchTerm = filter.SearchTerm,
+                Status = filter.Status,
+                SortBy = filter.SortBy,
+                SortDescending = filter.SortDescending,
+                Page = filter.Page,
+                PageSize = filter.PageSize,
+                UserId = userId ?? string.Empty,
+                IsAdmin = isAdmin
+            };
+
+            var result = await _projectService.GetFilteredProjectsAsync(filterDto);
+
+            var viewModel = new ProjectIndexViewModel
+            {
+                Projects = result.Items.Select(p => new ProjectListViewModel
+                {
+                    Id = p.Id,
+                    Name = p.Name,
+                    Description = p.Description,
+                    Status = p.Status,
+                    StartDate = p.StartDate,
+                    EndDate = p.EndDate,
+                    OwnerName = p.OwnerName,
+                    TeamMembersCount = p.TeamMembersCount,
+                    WorkItemsCount = p.WorkItemsCount,
+                    CompletedWorkItemsCount = p.CompletedWorkItemsCount,
+                    CreatedAt = p.CreatedAt
+                }).ToList(),
+                Filter = filter,
+                Pagination = new PaginationViewModel
+                {
+                    CurrentPage = result.Page,
+                    TotalPages = result.TotalPages,
+                    PageSize = result.PageSize,
+                    TotalCount = result.TotalCount
+                }
+            };
+
+            TempData["ProjectFilter"] = System.Text.Json.JsonSerializer.Serialize(filter);
 
             return View(viewModel);
         }
