@@ -15,5 +15,6 @@ namespace ProjectTracker.Services.Interfaces
         Task<bool> AssignWorkItemAsync(int id, string? assigneeId, string userId, bool isAdmin);
         Task<int> GetWorkItemsCountByStatusAsync(int projectId, string status);
         Task<IEnumerable<WorkItemDto>> GetWorkItemsByAssigneeAsync(string assigneeId, string userId, bool isAdmin);
+        Task<PaginatedResult<WorkItemDto>> GetFilteredWorkItemsAsync(WorkItemFilterDto filter);
     }
 }

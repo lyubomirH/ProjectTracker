@@ -390,5 +390,96 @@ namespace ProjectTracker.Services.Services
                 CommentsCount = w.Comments.Count
             }).OrderByDescending(w => w.CreatedAt);
         }
+
+        public async Task<PaginatedResult<WorkItemDto>> GetFilteredWorkItemsAsync(WorkItemFilterDto filter)
+        {
+            var query = _context.WorkItems
+                .Include(w => w.Project)
+                .Include(w => w.Assignee)
+                .Include(w => w.CreatedBy)
+                .Where(w => !w.Project.IsDeleted);
+
+            if (!filter.IsAdmin)
+            {
+                query = query.Where(w =>
+                    w.AssigneeId == filter.UserId ||
+                    w.CreatedById == filter.UserId ||
+                    w.Project.OwnerId == filter.UserId ||
+                    w.Project.TeamMembers.Any(tm => tm.UserId == filter.UserId));
+            }
+
+            if (filter.ProjectId.HasValue && filter.ProjectId.Value > 0)
+            {
+                query = query.Where(w => w.ProjectId == filter.ProjectId.Value);
+            }
+
+            if (!string.IsNullOrEmpty(filter.Status) && filter.Status != "All")
+            {
+                var status = Enum.Parse<WorkItemStatus>(filter.Status);
+                query = query.Where(w => w.Status == status);
+            }
+
+            if (!string.IsNullOrEmpty(filter.Priority) && filter.Priority != "All")
+            {
+                var priority = Enum.Parse<WorkItemPriority>(filter.Priority);
+                query = query.Where(w => w.Priority == priority);
+            }
+
+            if (!string.IsNullOrEmpty(filter.AssigneeId))
+            {
+                query = query.Where(w => w.AssigneeId == filter.AssigneeId);
+            }
+
+            if (!string.IsNullOrEmpty(filter.SearchTerm))
+            {
+                query = query.Where(w => w.Title.Contains(filter.SearchTerm) ||
+                                         (w.Description != null && w.Description.Contains(filter.SearchTerm)));
+            }
+
+            // Сортиране
+            query = (filter.SortBy?.ToLower()) switch
+            {
+                "title" => filter.SortDescending ? query.OrderByDescending(w => w.Title) : query.OrderBy(w => w.Title),
+                "duedate" => filter.SortDescending ? query.OrderByDescending(w => w.DueDate) : query.OrderBy(w => w.DueDate),
+                "priority" => filter.SortDescending ? query.OrderByDescending(w => w.Priority) : query.OrderBy(w => w.Priority),
+                "status" => filter.SortDescending ? query.OrderByDescending(w => w.Status) : query.OrderBy(w => w.Status),
+                _ => filter.SortDescending ? query.OrderByDescending(w => w.CreatedAt) : query.OrderBy(w => w.CreatedAt)
+            };
+
+            var totalCount = await query.CountAsync();
+            var items = await query
+                .Skip((filter.Page - 1) * filter.PageSize)
+                .Take(filter.PageSize)
+                .ToListAsync();
+
+            var workItemDtos = items.Select(w => new WorkItemDto
+            {
+                Id = w.Id,
+                Title = w.Title,
+                Description = w.Description,
+                Priority = w.Priority.ToString(),
+                Status = w.Status.ToString(),
+                ProjectId = w.ProjectId,
+                ProjectName = w.Project.Name,
+                AssigneeId = w.AssigneeId,
+                AssigneeName = w.Assignee?.FullName ?? "Unassigned",
+                CreatedById = w.CreatedById ?? string.Empty,
+                CreatedByName = w.CreatedBy?.FullName ?? "Unknown",
+                CreatedAt = w.CreatedAt,
+                DueDate = w.DueDate,
+                CompletedAt = w.CompletedAt,
+                EstimatedHours = w.EstimatedHours,
+                ActualHours = w.ActualHours,
+                CommentsCount = w.Comments.Count
+            });
+
+            return new PaginatedResult<WorkItemDto>
+            {
+                Items = workItemDtos,
+                TotalCount = totalCount,
+                Page = filter.Page,
+                PageSize = filter.PageSize
+            };
+        }
     }
 }
