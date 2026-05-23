@@ -12,5 +12,7 @@ namespace ProjectTracker.Services.Interfaces
         Task<bool> IsUserInProjectAsync(int projectId, string userId);
         Task<int> GetProjectWorkItemsCountAsync(int projectId);
         Task<double> GetProjectCompletionPercentageAsync(int projectId);
+        Task<PaginatedResult<ProjectDto>> GetFilteredProjectsAsync(ProjectFilterDto filter);
+        Task<PaginatedResult<WorkItemDto>> GetFilteredWorkItemsAsync(WorkItemFilterDto filter);
     }
 }

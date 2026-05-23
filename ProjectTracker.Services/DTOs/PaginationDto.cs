@@ -1,15 +1,15 @@
 ﻿namespace ProjectTracker.Services.DTOs
 {
-    public class PaginationDto<T>
+    public class PaginatedResult<T>
     {
         public IEnumerable<T> Items { get; set; } = new List<T>();
-        public int CurrentPage { get; set; }
-        public int PageSize { get; set; }
         public int TotalCount { get; set; }
-        public int TotalPages => (int)Math.Ceiling((double)TotalCount / PageSize);
+        public int Page { get; set; }
+        public int PageSize { get; set; }
 
-        public bool HasPreviousPage => CurrentPage > 1;
-        public bool HasNextPage => CurrentPage < TotalPages;
+        public int TotalPages => (int)Math.Ceiling((double)TotalCount / PageSize);
+        public bool HasPreviousPage => Page > 1;
+        public bool HasNextPage => Page < TotalPages;
     }
 
     public class PaginationRequestDto
