@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using ProjectTracker.Data;
 using ProjectTracker.Services.DTOs;
 using ProjectTracker.Services.Interfaces;
+using ProjectTracker.Web.ViewModels.Projects;
 using ProjectTracker.Web.ViewModels.WorkItems;
 using System.Security.Claims;
 
@@ -60,37 +61,65 @@ namespace ProjectTracker.Web.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> Create(int projectId)
+        public async Task<IActionResult> Index(WorkItemFilterViewModel filter)
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             var isAdmin = User.IsInRole("Admin");
 
-            var project = await _projectService.GetProjectByIdAsync(projectId, userId, isAdmin);
-
-            if (project == null)
+            if (string.IsNullOrEmpty(userId) && !isAdmin)
             {
-                return RedirectToAction("Error404", "Home");
+                return View(new WorkItemIndexViewModel());
             }
 
-            // Get team members for assignee dropdown
-            var teamMembers = await _context.TeamMembers
-                .Include(tm => tm.User)
-                .Where(tm => tm.ProjectId == projectId && tm.IsActive)
-                .Select(tm => new { tm.UserId, tm.User.FullName })
-                .ToListAsync();
-
-            ViewBag.TeamMembers = teamMembers;
-
-            var model = new WorkItemFormViewModel
+            var filterDto = new WorkItemFilterDto
             {
-                ProjectId = projectId,
-                ProjectName = project.Name,
-                Priority = "Medium",
-                Status = "ToDo",
-                DueDate = DateTime.Today.AddDays(7)
+                SearchTerm = filter.SearchTerm,
+                Status = filter.Status,
+                Priority = filter.Priority,
+                ProjectId = filter.ProjectId,
+                AssigneeId = filter.AssigneeId,
+                SortBy = filter.SortBy,
+                SortDescending = filter.SortDescending,
+                Page = filter.Page,
+                PageSize = filter.PageSize,
+                UserId = userId ?? string.Empty,
+                IsAdmin = isAdmin
             };
 
-            return View(model);
+            var result = await _projectService.GetFilteredWorkItemsAsync(filterDto);
+
+            // Get projects for filter dropdown
+            var projects = await _context.Projects
+                .Where(p => !p.IsDeleted)
+                .Select(p => new ProjectDropdownViewModel { Id = p.Id, Name = p.Name })
+                .ToListAsync();
+
+            var viewModel = new WorkItemIndexViewModel
+            {
+                WorkItems = result.Items.Select(w => new WorkItemListViewModel
+                {
+                    Id = w.Id,
+                    Title = w.Title,
+                    ProjectName = w.ProjectName,
+                    ProjectId = w.ProjectId,
+                    Status = w.Status,
+                    Priority = w.Priority,
+                    AssigneeName = w.AssigneeName,
+                    CreatedAt = w.CreatedAt,
+                    DueDate = w.DueDate
+                }).ToList(),
+                Filter = filter,
+                Pagination = new PaginationViewModel
+                {
+                    CurrentPage = result.Page,
+                    TotalPages = result.TotalPages,
+                    PageSize = result.PageSize,
+                    TotalCount = result.TotalCount
+                },
+                Projects = projects
+            };
+
+            return View(viewModel);
         }
 
         [HttpPost]
