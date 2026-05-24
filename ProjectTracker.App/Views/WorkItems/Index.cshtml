@@ -1,4 +1,4 @@
-﻿@model List<ProjectTracker.Web.ViewModels.WorkItems.WorkItemListViewModel>
+﻿@model ProjectTracker.Web.ViewModels.WorkItems.WorkItemIndexViewModel
 
 @{
     ViewData["Title"] = "Work Items";
@@ -6,59 +6,115 @@
 
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h2><i class="fas fa-tasks"></i> Work Items</h2>
-    @{
-        var projects = ViewBag.Projects as List<dynamic>;
-        if (projects != null && projects.Any())
-        {
-            <div class="dropdown">
-                <button class="btn btn-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                    <i class="fas fa-plus"></i> New Work Item
-                </button>
-                <ul class="dropdown-menu">
-                    @foreach (var project in projects)
-                    {
-                        <li>
-                            <a class="dropdown-item" asp-action="Create" asp-route-projectId="@project.Id">
-                                @project.Name
-                            </a>
-                        </li>
-                    }
-                </ul>
-            </div>
-        }
+    @if (Model.Projects != null && Model.Projects.Any())
+    {
+        <div class="dropdown">
+            <button class="btn btn-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                <i class="fas fa-plus"></i> New Work Item
+            </button>
+            <ul class="dropdown-menu">
+                @foreach (var project in Model.Projects)
+                {
+                    <li>
+                        <a class="dropdown-item" asp-action="Create" asp-route-projectId="@project.Id">
+                            @project.Name
+                        </a>
+                    </li>
+                }
+            </ul>
+        </div>
     }
 </div>
 
 <!-- Filter Card -->
 <div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="fas fa-filter"></i> Filter Work Items</h5>
+    </div>
     <div class="card-body">
-        <form method="get" class="row g-3 align-items-end">
-            <div class="col-md-10">
-                <label class="form-label fw-bold">Filter by Project</label>
-                <select name="projectId" class="form-select" onchange="this.form.submit()">
+        <form method="get" id="filterForm" class="row g-3">
+            <!-- Search -->
+            <div class="col-md-3">
+                <label class="form-label fw-bold">Search</label>
+                <input type="text" name="searchTerm" class="form-control"
+                       placeholder="Search by title..." value="@Model.Filter.SearchTerm" />
+            </div>
+
+            <!-- Project Filter -->
+            <div class="col-md-2">
+                <label class="form-label fw-bold">Project</label>
+                <select name="projectId" class="form-select">
                     <option value="">All Projects</option>
-                    @if (projects != null)
+                    @foreach (var project in Model.Projects)
                     {
-                        foreach (var project in projects)
-                        {
-                            var selected = ViewBag.SelectedProjectId != null && ViewBag.SelectedProjectId == project.Id;
-                            <option value="@project.Id" selected="@selected">
-                                @project.Name
-                            </option>
-                        }
+                        var selected = Model.Filter.ProjectId == project.Id;
+                        <option value="@project.Id" selected="@selected">@project.Name</option>
                     }
                 </select>
             </div>
+
+            <!-- Status Filter -->
             <div class="col-md-2">
-                <button type="submit" class="btn btn-secondary w-100">
-                    <i class="fas fa-filter"></i> Filter
+                <label class="form-label fw-bold">Status</label>
+                <select name="status" class="form-select">
+                    @foreach (var status in Model.Filter.Statuses)
+                    {
+                        var selected = Model.Filter.Status == status;
+                        <option value="@(status == "All" ? "" : status)" selected="@selected">@status</option>
+                    }
+                </select>
+            </div>
+
+            <!-- Priority Filter -->
+            <div class="col-md-2">
+                <label class="form-label fw-bold">Priority</label>
+                <select name="priority" class="form-select">
+                    @foreach (var priority in Model.Filter.Priorities)
+                    {
+                        var selected = Model.Filter.Priority == priority;
+                        <option value="@(priority == "All" ? "" : priority)" selected="@selected">@priority</option>
+                    }
+                </select>
+            </div>
+
+            <!-- Sort By -->
+            <div class="col-md-2">
+                <label class="form-label fw-bold">Sort By</label>
+                <select name="sortBy" class="form-select">
+                    @foreach (var option in Model.Filter.SortOptions)
+                    {
+                        var selected = Model.Filter.SortBy == option.Value;
+                        <option value="@option.Value" selected="@selected">@option.Text</option>
+                    }
+                </select>
+            </div>
+
+            <!-- Sort Direction -->
+            <div class="col-md-1">
+                <label class="form-label fw-bold">Order</label>
+                <select name="sortDescending" class="form-select">
+                    <option value="true" selected="@Model.Filter.SortDescending">Desc</option>
+                    <option value="false" selected="!@Model.Filter.SortDescending">Asc</option>
+                </select>
+            </div>
+
+            <div class="text-center text-muted mt-3">
+                <small>Showing @Model.WorkItems.Count of @Model.Pagination.TotalCount work items</small>
+            </div>
+
+            <div class="col-md-12">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-search"></i> Apply Filters
                 </button>
+                <a asp-action="Index" class="btn btn-secondary">
+                    <i class="fas fa-undo"></i> Reset
+                </a>
             </div>
         </form>
     </div>
 </div>
 
-@if (!Model.Any())
+@if (!Model.WorkItems.Any())
 {
     <div class="alert alert-info text-center py-5">
         <i class="fas fa-info-circle fa-3x mb-3"></i>
@@ -83,9 +139,9 @@ else
                 </tr>
             </thead>
             <tbody>
-                @foreach (var item in Model)
+                @foreach (var item in Model.WorkItems)
                 {
-                    <tr>
+                    <tr class="@(item.IsOverdue ? "table-danger" : "")">
                         <td>
                             <strong>@item.Title</strong>
                         </td>
@@ -130,12 +186,62 @@ else
             </tbody>
         </table>
     </div>
+
+    <!-- Pagination -->
+    @if (Model.Pagination.TotalPages > 1)
+    {
+        <nav aria-label="Page navigation">
+            <ul class="pagination justify-content-center">
+                <li class="page-item @(Model.Pagination.HasPreviousPage ? "" : "disabled")">
+                    <a class="page-link" href="#" data-page="@(Model.Filter.Page - 1)">
+                        <i class="fas fa-chevron-left"></i> Previous
+                    </a>
+                </li>
+
+                @for (int i = Model.Pagination.StartPage; i <= Model.Pagination.EndPage; i++)
+                {
+                    <li class="page-item @(Model.Filter.Page == i ? "active" : "")">
+                        <a class="page-link" href="#" data-page="@i">@i</a>
+                    </li>
+                }
+
+                <li class="page-item @(Model.Pagination.HasNextPage ? "" : "disabled")">
+                    <a class="page-link" href="#" data-page="@(Model.Filter.Page + 1)">
+                        Next <i class="fas fa-chevron-right"></i>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+    }
 }
 
 @section Scripts {
     <script>
-        document.querySelector('select[name="projectId"]')?.addEventListener('change', function() {
-            this.form.submit();
+        // Pagination click handler
+        document.querySelectorAll('.pagination .page-link').forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                const page = this.dataset.page;
+                if (page) {
+                    const form = document.getElementById('filterForm');
+                    let pageInput = form.querySelector('input[name="page"]');
+                    if (!pageInput) {
+                        pageInput = document.createElement('input');
+                        pageInput.type = 'hidden';
+                        pageInput.name = 'page';
+                        form.appendChild(pageInput);
+                    }
+                    pageInput.value = page;
+                    form.submit();
+                }
+            });
+        });
+
+        // Auto-submit when dropdowns change
+        document.querySelectorAll('select[name="projectId"], select[name="status"], select[name="priority"], select[name="sortBy"], select[name="sortDescending"], select[name="pageSize"]').forEach(select => {
+            select.addEventListener('change', function() {
+                document.getElementById('filterForm').submit();
+            });
         });
     </script>
 }

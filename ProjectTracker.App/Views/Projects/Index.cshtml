@@ -61,15 +61,8 @@
                 </select>
             </div>
 
-            <!-- Page Size -->
-            <div class="col-md-2">
-                <label class="form-label fw-bold">Per Page</label>
-                <select name="PageSize" class="form-select">
-                    <option value="5" selected="@(Model.Filter.PageSize == 5)">5</option>
-                    <option value="10" selected="@(Model.Filter.PageSize == 10)">10</option>
-                    <option value="25" selected="@(Model.Filter.PageSize == 25)">25</option>
-                    <option value="50" selected="@(Model.Filter.PageSize == 50)">50</option>
-                </select>
+            <div class="text-center text-muted mt-3">
+                <small>Showing @Model.Projects.Count of @Model.Pagination.TotalCount projects</small>
             </div>
 
             <div class="col-md-12">

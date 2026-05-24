@@ -12,7 +12,7 @@
 <!-- Statistics Cards -->
 <div class="row g-4 mb-4">
     <div class="col-md-3">
-        <div class="card bg-primary text-white">
+        <div class="card bg-primary text-white shadow-sm">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
@@ -25,7 +25,7 @@
         </div>
     </div>
     <div class="col-md-3">
-        <div class="card bg-success text-white">
+        <div class="card bg-success text-white shadow-sm">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
@@ -38,7 +38,7 @@
         </div>
     </div>
     <div class="col-md-3">
-        <div class="card bg-info text-white">
+        <div class="card bg-info text-white shadow-sm">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
@@ -51,7 +51,7 @@
         </div>
     </div>
     <div class="col-md-3">
-        <div class="card bg-warning text-white">
+        <div class="card bg-warning text-white shadow-sm">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
@@ -65,12 +65,68 @@
     </div>
 </div>
 
+<!-- Second Row Statistics -->
+<div class="row g-4 mb-4">
+    <div class="col-md-3">
+        <div class="card bg-secondary text-white shadow-sm">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-title text-white-50">On Hold Projects</h6>
+                        <h2 class="mb-0">@Model.OnHoldProjects</h2>
+                    </div>
+                    <i class="fas fa-pause-circle fa-3x text-white-50"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-danger text-white shadow-sm">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-title text-white-50">In Progress Tasks</h6>
+                        <h2 class="mb-0">@Model.InProgressWorkItems</h2>
+                    </div>
+                    <i class="fas fa-spinner fa-3x text-white-50"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-dark text-white shadow-sm">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-title text-white-50">To Do Tasks</h6>
+                        <h2 class="mb-0">@Model.ToDoWorkItems</h2>
+                    </div>
+                    <i class="fas fa-clock fa-3x text-white-50"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-purple text-white shadow-sm" style="background-color: #6f42c1;">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-title text-white-50">Team Members</h6>
+                        <h2 class="mb-0">@Model.TotalTeamMembers</h2>
+                    </div>
+                    <i class="fas fa-users fa-3x text-white-50"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Charts Row -->
 <div class="row g-4 mb-4">
     <div class="col-md-6">
-        <div class="card h-100">
-            <div class="card-header">
-                <h5 class="mb-0"><i class="fas fa-chart-pie"></i> Work Items by Status</h5>
+        <div class="card h-100 shadow-sm">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="fas fa-chart-pie text-primary"></i> Work Items by Status</h5>
             </div>
             <div class="card-body">
                 <canvas id="workItemsChart" height="250"></canvas>
@@ -78,9 +134,9 @@
         </div>
     </div>
     <div class="col-md-6">
-        <div class="card h-100">
-            <div class="card-header">
-                <h5 class="mb-0"><i class="fas fa-chart-pie"></i> Projects by Status</h5>
+        <div class="card h-100 shadow-sm">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="fas fa-chart-pie text-success"></i> Projects by Status</h5>
             </div>
             <div class="card-body">
                 <canvas id="projectsChart" height="250"></canvas>
@@ -92,10 +148,88 @@
 <!-- Project Progress and Recent Activities Row -->
 <div class="row g-4">
     <div class="col-md-6">
-        @await Html.PartialAsync("_ProjectProgress", Model.ProjectProgress)
+        <div class="card h-100 shadow-sm">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="fas fa-chart-line text-info"></i> Project Progress</h5>
+            </div>
+            <div class="card-body" style="max-height: 400px; overflow-y: auto;">
+                @if (Model.ProjectProgress == null || !Model.ProjectProgress.Any())
+                {
+                    <p class="text-muted text-center py-3">No active projects.</p>
+                }
+                else
+                {
+                    @foreach (var project in Model.ProjectProgress)
+                    {
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between mb-1">
+                                <span>
+                                    <a asp-controller="Projects" asp-action="Details" asp-route-id="@project.Id" class="text-decoration-none">
+                                        @project.Name
+                                    </a>
+                                </span>
+                                <span class="text-muted">@project.CompletedTasks/@project.TotalTasks tasks</span>
+                            </div>
+                            <div class="progress" style="height: 8px;">
+                                <div class="progress-bar bg-success" style="width: @project.CompletionPercentage%"></div>
+                            </div>
+                            <div class="d-flex justify-content-between mt-1">
+                                <small class="text-muted">@project.CompletionPercentage.ToString("F1")% complete</small>
+                                @if (project.EndDate.HasValue)
+                                {
+                                    <small class="text-muted">
+                                        <i class="fas fa-calendar"></i> Due: @project.EndDate.Value.ToString("yyyy-MM-dd")
+                                    </small>
+                                }
+                            </div>
+                        </div>
+                    }
+                }
+            </div>
+        </div>
     </div>
     <div class="col-md-6">
-        @await Html.PartialAsync("_RecentActivities", Model.RecentActivities)
+        <div class="card h-100 shadow-sm">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="fas fa-clock text-warning"></i> Recent Activities</h5>
+            </div>
+            <div class="card-body" style="max-height: 400px; overflow-y: auto;">
+                @if (Model.RecentActivities == null || !Model.RecentActivities.Any())
+                {
+                    <p class="text-muted text-center py-3">No recent activities.</p>
+                }
+                else
+                {
+                    @foreach (var activity in Model.RecentActivities)
+                    {
+                        <div class="d-flex mb-3 pb-2 border-bottom">
+                            <div class="flex-shrink-0">
+                                <div class="rounded-circle p-2 bg-@activity.Color bg-opacity-10">
+                                    <i class="fas @activity.Icon text-@activity.Color"></i>
+                                </div>
+                            </div>
+                            <div class="flex-grow-1 ms-3">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <strong>@activity.Title</strong>
+                                    <small class="text-muted">@activity.CreatedAt.ToString("yyyy-MM-dd HH:mm")</small>
+                                </div>
+                                <div class="text-muted small">
+                                    @activity.Action by @activity.UserName
+                                    @if (!string.IsNullOrEmpty(activity.ProjectName))
+                                    {
+                                        <span>
+                                            in <a asp-controller="Projects" asp-action="Details" asp-route-id="@activity.ProjectId" class="text-decoration-none">
+                                                @activity.ProjectName
+                                            </a>
+                                        </span>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    }
+                }
+            </div>
+        </div>
     </div>
 </div>
 
@@ -104,16 +238,12 @@
     <script>
         // Work Items Chart
         const workItemsCtx = document.getElementById('workItemsChart').getContext('2d');
-        const workItemsChart = new Chart(workItemsCtx, {
-        type: 'doughnut',
-        data: {
-        labels: @Html.Raw(Json.Serialize(Model.WorkItemsByStatus.Select(w => w.Status))),
-        datasets: [{
-        data: @Html.Raw(Json.Serialize(Model.WorkItemsByStatus.Select(w => w.Count))),
-        backgroundColor: @Html.Raw(Json.Serialize(Model.WorkItemsByStatus.Select(w =>
-        {
-            return w.Color switch
-            {
+        
+        // Filter out empty data
+        const workItemsLabels = @Html.Raw(Json.Serialize(Model.WorkItemsByStatus.Where(w => w.Count > 0).Select(w => w.Status)));
+        const workItemsData = @Html.Raw(Json.Serialize(Model.WorkItemsByStatus.Where(w => w.Count > 0).Select(w => w.Count)));
+        const workItemsColors = @Html.Raw(Json.Serialize(Model.WorkItemsByStatus.Where(w => w.Count > 0).Select(w => {
+            return w.Color switch {
                 "secondary" => "#6c757d",
                 "primary" => "#0d6efd",
                 "info" => "#0dcaf0",
@@ -122,33 +252,50 @@
                 "danger" => "#dc3545",
                 _ => "#6c757d"
             };
-        }))),
-        borderWidth: 0
-        }]
-        },
-        options: {
-        responsive: true,
-        maintainAspectRatio: true,
-        plugins: {
-        legend: {
-        position: 'bottom'
+        })));
+        
+        if (workItemsLabels.length > 0) {
+            new Chart(workItemsCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: workItemsLabels,
+                    datasets: [{
+                        data: workItemsData,
+                        backgroundColor: workItemsColors,
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = context.raw || 0;
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = total > 0 ? Math.round((value / total) * 100) : 0;
+                                    return `${label}: ${value} (${percentage}%)`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
         }
-        }
-        }
-        });
-
+        
         // Projects Chart
         const projectsCtx = document.getElementById('projectsChart').getContext('2d');
-        const projectsChart = new Chart(projectsCtx, {
-        type: 'pie',
-        data: {
-        labels: @Html.Raw(Json.Serialize(Model.ProjectsByStatus.Select(p => p.Status))),
-        datasets: [{
-        data: @Html.Raw(Json.Serialize(Model.ProjectsByStatus.Select(p => p.Count))),
-        backgroundColor: @Html.Raw(Json.Serialize(Model.ProjectsByStatus.Select(p =>
-        {
-            return p.Color switch
-            {
+        
+        // Filter out empty data
+        const projectsLabels = @Html.Raw(Json.Serialize(Model.ProjectsByStatus.Where(p => p.Count > 0).Select(p => p.Status)));
+        const projectsData = @Html.Raw(Json.Serialize(Model.ProjectsByStatus.Where(p => p.Count > 0).Select(p => p.Count)));
+        const projectsColors = @Html.Raw(Json.Serialize(Model.ProjectsByStatus.Where(p => p.Count > 0).Select(p => {
+            return p.Color switch {
                 "success" => "#198754",
                 "warning" => "#ffc107",
                 "info" => "#0dcaf0",
@@ -156,19 +303,40 @@
                 "danger" => "#dc3545",
                 _ => "#6c757d"
             };
-        }))),
-        borderWidth: 0
-        }]
-        },
-        options: {
-        responsive: true,
-        maintainAspectRatio: true,
-        plugins: {
-        legend: {
-        position: 'bottom'
+        })));
+        
+        if (projectsLabels.length > 0) {
+            new Chart(projectsCtx, {
+                type: 'pie',
+                data: {
+                    labels: projectsLabels,
+                    datasets: [{
+                        data: projectsData,
+                        backgroundColor: projectsColors,
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = context.raw || 0;
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = total > 0 ? Math.round((value / total) * 100) : 0;
+                                    return `${label}: ${value} (${percentage}%)`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
         }
-        }
-        }
-        });
     </script>
 }

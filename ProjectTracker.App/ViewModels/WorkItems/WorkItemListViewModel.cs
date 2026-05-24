@@ -60,18 +60,38 @@ namespace ProjectTracker.Web.ViewModels.WorkItems
         public List<string> Statuses { get; } = new() { "All", "ToDo", "InProgress", "CodeReview", "Testing", "Done", "Blocked" };
         public List<string> Priorities { get; } = new() { "All", "Low", "Medium", "High", "Critical" };
         public List<SortOption> SortOptions { get; } = new()
-        {
-            new SortOption { Value = "Title", Text = "Title" },
-            new SortOption { Value = "CreatedAt", Text = "Created Date" },
-            new SortOption { Value = "DueDate", Text = "Due Date" },
-            new SortOption { Value = "Priority", Text = "Priority" },
-            new SortOption { Value = "Status", Text = "Status" }
-        };
+    {
+        new SortOption { Value = "Title", Text = "Title" },
+        new SortOption { Value = "CreatedAt", Text = "Created Date" },
+        new SortOption { Value = "DueDate", Text = "Due Date" },
+        new SortOption { Value = "Priority", Text = "Priority" },
+        new SortOption { Value = "Status", Text = "Status" }
+    };
+    }
+
+    public class PaginationViewModel
+    {
+        public int CurrentPage { get; set; }
+        public int TotalPages { get; set; }
+        public int PageSize { get; set; }
+        public int TotalCount { get; set; }
+
+        public bool HasPreviousPage => CurrentPage > 1;
+        public bool HasNextPage => CurrentPage < TotalPages;
+
+        public int StartPage => Math.Max(1, CurrentPage - 2);
+        public int EndPage => Math.Min(TotalPages, CurrentPage + 2);
     }
 
     public class ProjectDropdownViewModel
     {
         public int Id { get; set; }
         public string Name { get; set; } = string.Empty;
+    }
+
+    public class SortOption
+    {
+        public string Value { get; set; } = string.Empty;
+        public string Text { get; set; } = string.Empty;
     }
 }

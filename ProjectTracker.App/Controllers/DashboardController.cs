@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using ProjectTracker.Services.DTOs;
 using ProjectTracker.Services.Interfaces;
 using System.Security.Claims;
 
@@ -21,13 +22,9 @@ namespace ProjectTracker.Web.Controllers
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             var isAdmin = User.IsInRole("Admin");
 
-            if (string.IsNullOrEmpty(userId) && !isAdmin)
-            {
-                return RedirectToAction("Login", "Auth");
-            }
-
             var dashboard = await _dashboardService.GetDashboardDataAsync(userId ?? string.Empty, isAdmin);
 
+            // Трябва да върне DashboardDto, а не WorkItemIndexViewModel
             return View(dashboard);
         }
 

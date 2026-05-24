@@ -4,7 +4,6 @@ using Microsoft.EntityFrameworkCore;
 using ProjectTracker.Data;
 using ProjectTracker.Services.DTOs;
 using ProjectTracker.Services.Interfaces;
-using ProjectTracker.Web.ViewModels.Projects;
 using ProjectTracker.Web.ViewModels.WorkItems;
 using System.Security.Claims;
 
@@ -28,40 +27,9 @@ namespace ProjectTracker.Web.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> Index(int? projectId)
-        {
-            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            var isAdmin = User.IsInRole("Admin");
-
-            var workItems = await _workItemService.GetWorkItemsAsync(projectId, userId, isAdmin);
-
-            var viewModel = workItems.Select(w => new WorkItemListViewModel
-            {
-                Id = w.Id,
-                Title = w.Title,
-                ProjectName = w.ProjectName,
-                ProjectId = w.ProjectId,
-                Status = w.Status,
-                Priority = w.Priority,
-                AssigneeName = w.AssigneeName,
-                CreatedAt = w.CreatedAt,
-                DueDate = w.DueDate
-            }).ToList();
-
-            // Get projects for filter dropdown
-            var projects = await _context.Projects
-                .Where(p => !p.IsDeleted)
-                .Select(p => new { p.Id, p.Name })
-                .ToListAsync();
-
-            ViewBag.Projects = projects;
-            ViewBag.SelectedProjectId = projectId;
-
-            return View(viewModel);
-        }
-
-        [HttpGet]
-        public async Task<IActionResult> Index(WorkItemFilterViewModel filter)
+        public async Task<IActionResult> Index(int? projectId, string? searchTerm, string? status,
+    string? priority, string? assigneeId, string? sortBy, bool sortDescending = true,
+    int page = 1, int pageSize = 10)  // pageSize default = 10
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             var isAdmin = User.IsInRole("Admin");
@@ -71,17 +39,20 @@ namespace ProjectTracker.Web.Controllers
                 return View(new WorkItemIndexViewModel());
             }
 
+            // Фиксирай PageSize на 10 за WorkItems (презаписва каквото е подадено)
+            pageSize = 10;
+
             var filterDto = new WorkItemFilterDto
             {
-                SearchTerm = filter.SearchTerm,
-                Status = filter.Status,
-                Priority = filter.Priority,
-                ProjectId = filter.ProjectId,
-                AssigneeId = filter.AssigneeId,
-                SortBy = filter.SortBy,
-                SortDescending = filter.SortDescending,
-                Page = filter.Page,
-                PageSize = filter.PageSize,
+                SearchTerm = searchTerm,
+                Status = status,
+                Priority = priority,
+                ProjectId = projectId,
+                AssigneeId = assigneeId,
+                SortBy = sortBy ?? "CreatedAt",
+                SortDescending = sortDescending,
+                Page = page,
+                PageSize = pageSize,  // Сега е 10
                 UserId = userId ?? string.Empty,
                 IsAdmin = isAdmin
             };
@@ -108,7 +79,18 @@ namespace ProjectTracker.Web.Controllers
                     CreatedAt = w.CreatedAt,
                     DueDate = w.DueDate
                 }).ToList(),
-                Filter = filter,
+                Filter = new WorkItemFilterViewModel
+                {
+                    SearchTerm = searchTerm,
+                    Status = status,
+                    Priority = priority,
+                    ProjectId = projectId,
+                    AssigneeId = assigneeId,
+                    SortBy = sortBy ?? "CreatedAt",
+                    SortDescending = sortDescending,
+                    Page = page,
+                    PageSize = pageSize
+                },
                 Pagination = new PaginationViewModel
                 {
                     CurrentPage = result.Page,
@@ -120,6 +102,40 @@ namespace ProjectTracker.Web.Controllers
             };
 
             return View(viewModel);
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> Create(int projectId)
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var isAdmin = User.IsInRole("Admin");
+
+            var project = await _projectService.GetProjectByIdAsync(projectId, userId ?? string.Empty, isAdmin);
+
+            if (project == null)
+            {
+                return RedirectToAction("Error404", "Home");
+            }
+
+            // Get team members for assignee dropdown
+            var teamMembers = await _context.TeamMembers
+                .Include(tm => tm.User)
+                .Where(tm => tm.ProjectId == projectId && tm.IsActive)
+                .Select(tm => new { tm.UserId, tm.User.FullName })
+                .ToListAsync();
+
+            ViewBag.TeamMembers = teamMembers;
+
+            var model = new WorkItemFormViewModel
+            {
+                ProjectId = projectId,
+                ProjectName = project.Name,
+                Priority = "Medium",
+                Status = "ToDo",
+                DueDate = DateTime.Today.AddDays(7)
+            };
+
+            return View(model);
         }
 
         [HttpPost]
@@ -155,7 +171,7 @@ namespace ProjectTracker.Web.Controllers
                 EstimatedHours = model.EstimatedHours
             };
 
-            var workItem = await _workItemService.CreateWorkItemAsync(createDto, userId);
+            var workItem = await _workItemService.CreateWorkItemAsync(createDto, userId ?? string.Empty);
 
             TempData["SuccessMessage"] = $"Work item \"{workItem.Title}\" created successfully!";
             return RedirectToAction(nameof(Index), new { projectId = model.ProjectId });
@@ -167,7 +183,7 @@ namespace ProjectTracker.Web.Controllers
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             var isAdmin = User.IsInRole("Admin");
 
-            var workItem = await _workItemService.GetWorkItemByIdAsync(id, userId, isAdmin);
+            var workItem = await _workItemService.GetWorkItemByIdAsync(id, userId ?? string.Empty, isAdmin);
 
             if (workItem == null)
             {
@@ -210,7 +226,7 @@ namespace ProjectTracker.Web.Controllers
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             var isAdmin = User.IsInRole("Admin");
 
-            var workItem = await _workItemService.GetWorkItemByIdAsync(id, userId, isAdmin);
+            var workItem = await _workItemService.GetWorkItemByIdAsync(id, userId ?? string.Empty, isAdmin);
 
             if (workItem == null)
             {
@@ -279,7 +295,7 @@ namespace ProjectTracker.Web.Controllers
                 ActualHours = model.ActualHours
             };
 
-            var result = await _workItemService.UpdateWorkItemAsync(updateDto, userId, isAdmin);
+            var result = await _workItemService.UpdateWorkItemAsync(updateDto, userId ?? string.Empty, isAdmin);
 
             if (result == null)
             {
@@ -297,7 +313,7 @@ namespace ProjectTracker.Web.Controllers
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             var isAdmin = User.IsInRole("Admin");
 
-            var result = await _workItemService.DeleteWorkItemAsync(id, userId, isAdmin);
+            var result = await _workItemService.DeleteWorkItemAsync(id, userId ?? string.Empty, isAdmin);
 
             if (!result)
             {
@@ -314,20 +330,47 @@ namespace ProjectTracker.Web.Controllers
         {
             if (string.IsNullOrWhiteSpace(content))
             {
-                return BadRequest("Comment content cannot be empty.");
+                return BadRequest(new { success = false, message = "Comment content cannot be empty." });
             }
 
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized(new { success = false, message = "User not authenticated." });
+            }
+
             try
             {
                 var comment = await _workItemService.AddCommentAsync(workItemId, content, userId);
-                return Ok(new { success = true, message = "Comment added successfully" });
+                return Ok(new { success = true, message = "Comment added successfully", comment });
             }
             catch (Exception ex)
             {
                 return BadRequest(new { success = false, message = ex.Message });
             }
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> UpdateStatus(int id, string status)
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var isAdmin = User.IsInRole("Admin");
+
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized(new { success = false, message = "User not authenticated." });
+            }
+
+            var result = await _workItemService.UpdateWorkItemStatusAsync(id, status, userId, isAdmin);
+
+            if (!result)
+            {
+                return NotFound(new { success = false, message = "Work item not found or access denied." });
+            }
+
+            return Ok(new { success = true, message = "Status updated successfully" });
         }
     }
 }

@@ -1,0 +1,43 @@
+﻿@model IEnumerable<ProjectTracker.Services.DTOs.RecentActivityDto>
+
+<div class="card h-100">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="fas fa-clock"></i> Recent Activities</h5>
+    </div>
+    <div class="card-body" style="max-height: 400px; overflow-y: auto;">
+        @if (!Model.Any())
+        {
+            <p class="text-muted text-center py-3">No recent activities.</p>
+        }
+        else
+        {
+            @foreach (var activity in Model)
+            {
+                <div class="d-flex mb-3 pb-2 border-bottom">
+                    <div class="flex-shrink-0">
+                        <div class="rounded-circle p-2 bg-@activity.Color bg-opacity-10">
+                            <i class="fas @activity.Icon text-@activity.Color"></i>
+                        </div>
+                    </div>
+                    <div class="flex-grow-1 ms-3">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <strong>@activity.Title</strong>
+                            <small class="text-muted">@activity.CreatedAt.ToString("yyyy-MM-dd HH:mm")</small>
+                        </div>
+                        <div class="text-muted small">
+                            @activity.Action by @activity.UserName
+                            @if (!string.IsNullOrEmpty(activity.ProjectName))
+                            {
+                                <span>
+                                    in <a asp-controller="Projects" asp-action="Details" asp-route-id="@activity.ProjectId" class="text-decoration-none">
+                                    @activity.ProjectName
+                                </a>
+                            </span>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+    }
+</div>
+</div>
