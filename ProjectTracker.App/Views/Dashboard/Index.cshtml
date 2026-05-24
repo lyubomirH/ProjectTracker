@@ -1,0 +1,174 @@
+﻿@model ProjectTracker.Services.DTOs.DashboardDto
+
+@{
+    ViewData["Title"] = "Dashboard";
+}
+
+<div class="mb-4">
+    <h1><i class="fas fa-chart-line"></i> Dashboard</h1>
+    <p class="text-muted">Welcome to your project overview dashboard.</p>
+</div>
+
+<!-- Statistics Cards -->
+<div class="row g-4 mb-4">
+    <div class="col-md-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-title text-white-50">Total Projects</h6>
+                        <h2 class="mb-0">@Model.TotalProjects</h2>
+                    </div>
+                    <i class="fas fa-project-diagram fa-3x text-white-50"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-title text-white-50">Active Projects</h6>
+                        <h2 class="mb-0">@Model.ActiveProjects</h2>
+                    </div>
+                    <i class="fas fa-play-circle fa-3x text-white-50"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-title text-white-50">Total Tasks</h6>
+                        <h2 class="mb-0">@Model.TotalWorkItems</h2>
+                    </div>
+                    <i class="fas fa-tasks fa-3x text-white-50"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-warning text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-title text-white-50">Completion Rate</h6>
+                        <h2 class="mb-0">@Model.CompletionPercentage%</h2>
+                    </div>
+                    <i class="fas fa-chart-simple fa-3x text-white-50"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row -->
+<div class="row g-4 mb-4">
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-chart-pie"></i> Work Items by Status</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="workItemsChart" height="250"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-chart-pie"></i> Projects by Status</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="projectsChart" height="250"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Project Progress and Recent Activities Row -->
+<div class="row g-4">
+    <div class="col-md-6">
+        @await Html.PartialAsync("_ProjectProgress", Model.ProjectProgress)
+    </div>
+    <div class="col-md-6">
+        @await Html.PartialAsync("_RecentActivities", Model.RecentActivities)
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // Work Items Chart
+        const workItemsCtx = document.getElementById('workItemsChart').getContext('2d');
+        const workItemsChart = new Chart(workItemsCtx, {
+        type: 'doughnut',
+        data: {
+        labels: @Html.Raw(Json.Serialize(Model.WorkItemsByStatus.Select(w => w.Status))),
+        datasets: [{
+        data: @Html.Raw(Json.Serialize(Model.WorkItemsByStatus.Select(w => w.Count))),
+        backgroundColor: @Html.Raw(Json.Serialize(Model.WorkItemsByStatus.Select(w =>
+        {
+            return w.Color switch
+            {
+                "secondary" => "#6c757d",
+                "primary" => "#0d6efd",
+                "info" => "#0dcaf0",
+                "warning" => "#ffc107",
+                "success" => "#198754",
+                "danger" => "#dc3545",
+                _ => "#6c757d"
+            };
+        }))),
+        borderWidth: 0
+        }]
+        },
+        options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: {
+        legend: {
+        position: 'bottom'
+        }
+        }
+        }
+        });
+
+        // Projects Chart
+        const projectsCtx = document.getElementById('projectsChart').getContext('2d');
+        const projectsChart = new Chart(projectsCtx, {
+        type: 'pie',
+        data: {
+        labels: @Html.Raw(Json.Serialize(Model.ProjectsByStatus.Select(p => p.Status))),
+        datasets: [{
+        data: @Html.Raw(Json.Serialize(Model.ProjectsByStatus.Select(p => p.Count))),
+        backgroundColor: @Html.Raw(Json.Serialize(Model.ProjectsByStatus.Select(p =>
+        {
+            return p.Color switch
+            {
+                "success" => "#198754",
+                "warning" => "#ffc107",
+                "info" => "#0dcaf0",
+                "secondary" => "#6c757d",
+                "danger" => "#dc3545",
+                _ => "#6c757d"
+            };
+        }))),
+        borderWidth: 0
+        }]
+        },
+        options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: {
+        legend: {
+        position: 'bottom'
+        }
+        }
+        }
+        });
+    </script>
+}
