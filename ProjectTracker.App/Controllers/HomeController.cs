@@ -14,6 +14,7 @@ namespace ProjectTracker.Web.Controllers
             {
                 var firstName = User.FindFirstValue("FirstName") ?? "User";
                 ViewBag.WelcomeMessage = $"Welcome back, {firstName}!";
+                return RedirectToAction("Index", "Dashboard");
             }
 
             return View();
