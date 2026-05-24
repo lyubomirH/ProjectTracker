@@ -5,6 +5,8 @@
         public int TotalProjects { get; set; }
         public int ActiveProjects { get; set; }
         public int CompletedProjects { get; set; }
+        public int OnHoldProjects { get; set; }
+
         public int TotalWorkItems { get; set; }
         public int CompletedWorkItems { get; set; }
         public int InProgressWorkItems { get; set; }
@@ -18,6 +20,8 @@
 
         public List<RecentActivityDto> RecentActivities { get; set; } = new();
         public List<ProjectProgressDto> ProjectProgress { get; set; } = new();
+        public List<WorkItemByStatusDto> WorkItemsByStatus { get; set; } = new();
+        public List<ProjectByStatusDto> ProjectsByStatus { get; set; } = new();
     }
 
     public class RecentActivityDto
@@ -30,6 +34,8 @@
         public DateTime CreatedAt { get; set; }
         public int? ProjectId { get; set; }
         public string ProjectName { get; set; } = string.Empty;
+        public string Icon { get; set; } = string.Empty;
+        public string Color { get; set; } = string.Empty;
     }
 
     public class ProjectProgressDto
@@ -40,5 +46,20 @@
         public int TotalTasks { get; set; }
         public int CompletedTasks { get; set; }
         public string Status { get; set; } = string.Empty;
+        public DateTime? EndDate { get; set; }
+    }
+
+    public class WorkItemByStatusDto
+    {
+        public string Status { get; set; } = string.Empty;
+        public int Count { get; set; }
+        public string Color { get; set; } = string.Empty;
+    }
+
+    public class ProjectByStatusDto
+    {
+        public string Status { get; set; } = string.Empty;
+        public int Count { get; set; }
+        public string Color { get; set; } = string.Empty;
     }
 }
