@@ -12,6 +12,7 @@ namespace ProjectTracker.Services.Extensions
             services.AddScoped<IProjectService, ProjectService>();
             services.AddScoped<IWorkItemService, WorkItemService>();
             services.AddScoped<ITeamService, TeamService>();
+            services.AddScoped<IDashboardService, DashboardService>();
 
             return services;
         }

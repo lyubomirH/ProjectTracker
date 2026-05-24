@@ -12,14 +12,19 @@
         public int InProgressWorkItems { get; set; }
         public int ToDoWorkItems { get; set; }
         public int BlockedWorkItems { get; set; }
+
         public int TotalTeamMembers { get; set; }
 
         public double CompletionPercentage => TotalWorkItems > 0
             ? Math.Round((double)CompletedWorkItems / TotalWorkItems * 100, 1)
             : 0;
 
-        public List<RecentActivityDto> RecentActivities { get; set; } = new();
-        public List<ProjectProgressDto> ProjectProgress { get; set; } = new();
+        // Промени от List<RecentActivityDto> на IEnumerable<RecentActivityDto>
+        public IEnumerable<RecentActivityDto> RecentActivities { get; set; } = new List<RecentActivityDto>();
+
+        // Промени от List<ProjectProgressDto> на IEnumerable<ProjectProgressDto>
+        public IEnumerable<ProjectProgressDto> ProjectProgress { get; set; } = new List<ProjectProgressDto>();
+
         public List<WorkItemByStatusDto> WorkItemsByStatus { get; set; } = new();
         public List<ProjectByStatusDto> ProjectsByStatus { get; set; } = new();
     }
@@ -28,8 +33,8 @@
     {
         public int Id { get; set; }
         public string Title { get; set; } = string.Empty;
-        public string Type { get; set; } = string.Empty; // "Project", "WorkItem", "Comment"
-        public string Action { get; set; } = string.Empty; // "Created", "Updated", "Completed"
+        public string Type { get; set; } = string.Empty;
+        public string Action { get; set; } = string.Empty;
         public string UserName { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; }
         public int? ProjectId { get; set; }
