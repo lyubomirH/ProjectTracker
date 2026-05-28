@@ -1,5 +1,9 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.Extensions.DependencyInjection;
 using ProjectTracker.Data;
+using ProjectTracker.Data.Constants;
 using ProjectTracker.Data.Entities;
 using ProjectTracker.Data.Enums;
 using ProjectTracker.Services.DTOs;
@@ -10,10 +14,12 @@ namespace ProjectTracker.Services.Services
     public class TeamService : ITeamService
     {
         private readonly ApplicationDbContext _context;
+        private readonly IServiceProvider _serviceProvider;
 
-        public TeamService(ApplicationDbContext context)
+        public TeamService(ApplicationDbContext context, IServiceProvider serviceProvider)
         {
             _context = context;
+            _serviceProvider = serviceProvider;
         }
 
         public async Task<IEnumerable<TeamMemberDto>> GetTeamMembersAsync(int projectId)
@@ -272,6 +278,85 @@ namespace ProjectTracker.Services.Services
             stats["BlockedWorkItems"] = workItems.Count(w => w.Status == WorkItemStatus.Blocked);
 
             return stats;
+        }
+
+        public async Task<bool> CanUserManageTeamAsync(int projectId, string userId)
+        {
+            var project = await _context.Projects
+                .FirstOrDefaultAsync(p => p.Id == projectId && !p.IsDeleted);
+
+            if (project == null) return false;
+
+            var isAdmin = await IsUserInRole(userId, "Admin");
+            if (isAdmin) return true;
+
+            if (project.OwnerId == userId) return true;
+
+            var teamMember = await _context.TeamMembers
+                .FirstOrDefaultAsync(tm => tm.ProjectId == projectId && tm.UserId == userId && tm.IsActive);
+
+            if (teamMember == null) return false;
+
+            return teamMember.Role == TeamRole.ProjectManager;
+        }
+
+        private async Task<bool> IsUserInRole(string userId, string role)
+        {
+            var user = await _context.Users.FindAsync(userId);
+            if (user == null) return false;
+
+            var userManager = GetUserManager();
+            return await userManager.IsInRoleAsync(user, role);
+        }
+
+        private UserManager<ApplicationUser> GetUserManager()
+        {
+            return _serviceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+        }
+
+        public async Task<IEnumerable<UserDto>> GetProjectManagersAsync()
+        {
+            var projectManagers = new List<UserDto>();
+
+            var userManager = GetUserManager();
+            var users = await _context.Users.ToListAsync();
+
+            foreach (var user in users)
+            {
+                if (await userManager.IsInRoleAsync(user, RoleNames.ProjectManager))
+                {
+                    projectManagers.Add(new UserDto
+                    {
+                        Id = user.Id,
+                        Email = user.Email ?? string.Empty,
+                        FullName = user.FullName,
+                        Department = user.Department,
+                        JobTitle = user.JobTitle,
+                        AvatarUrl = user.AvatarUrl
+                    });
+                }
+            }
+
+            return projectManagers;
+        }
+
+        public async Task<IEnumerable<TeamMemberDto>> GetUserProjectsAsync(string userId)
+        {
+            var teamMembers = await _context.TeamMembers
+                .Include(tm => tm.Project)
+                .Where(tm => tm.UserId == userId && tm.IsActive)
+                .ToListAsync();
+
+            return teamMembers.Select(tm => new TeamMemberDto
+            {
+                Id = tm.Id,
+                ProjectId = tm.ProjectId,
+                ProjectName = tm.Project?.Name ?? string.Empty,
+                UserId = tm.UserId,
+                Role = tm.Role.ToString(),
+                JoinedAt = tm.JoinedAt,
+                IsActive = tm.IsActive
+            });
         }
     }
 }

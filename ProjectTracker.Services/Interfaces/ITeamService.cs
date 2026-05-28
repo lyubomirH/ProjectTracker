@@ -12,7 +12,8 @@ namespace ProjectTracker.Services.Interfaces
         Task<IEnumerable<UserDto>> GetAvailableUsersForProjectAsync(int projectId);
         Task<bool> IsUserTeamMemberAsync(int projectId, string userId);
         Task<bool> IsUserProjectManagerAsync(int projectId, string userId);
-        Task<IEnumerable<UserDto>> GetAllUsersAsync();
-        Task<Dictionary<string, int>> GetTeamStatisticsAsync(string userId, bool isAdmin);
+        Task<bool> CanUserManageTeamAsync(int projectId, string userId);
+        Task<IEnumerable<UserDto>> GetProjectManagersAsync();
+        Task<IEnumerable<TeamMemberDto>> GetUserProjectsAsync(string userId);
     }
 }

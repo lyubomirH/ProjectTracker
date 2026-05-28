@@ -14,6 +14,9 @@
         public List<TeamMemberViewModel> TeamMembers { get; set; } = new();
         public List<WorkItemSummaryViewModel> WorkItems { get; set; } = new();
 
+        // Add this property for role-based UI
+        public string CurrentUserRole { get; set; } = "Viewer";
+
         public string StatusBadgeClass => Status switch
         {
             "Active" => "bg-success",
@@ -61,6 +64,7 @@
             "Critical" => "bg-danger",
             _ => "bg-secondary"
         };
+
         public bool IsOverdue => DueDate.HasValue && DueDate.Value.Date < DateTime.UtcNow.Date && Status != "Done";
     }
 }

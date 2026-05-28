@@ -148,6 +148,25 @@ namespace ProjectTracker.Web.Controllers
             // Get work items for this project
             var workItems = await _workItemService.GetWorkItemsAsync(id, userId ?? string.Empty, isAdmin);
 
+            // Determine current user's role in the project
+            var currentUserRole = "Viewer";
+            if (isAdmin)
+            {
+                currentUserRole = "Admin";
+            }
+            else if (project.OwnerId == userId)
+            {
+                currentUserRole = "Owner";
+            }
+            else
+            {
+                var userTeamMember = teamMembers.FirstOrDefault(tm => tm.UserId == userId);
+                if (userTeamMember != null)
+                {
+                    currentUserRole = userTeamMember.Role;
+                }
+            }
+
             var viewModel = new ProjectDetailsViewModel
             {
                 Id = project.Id,
@@ -158,6 +177,7 @@ namespace ProjectTracker.Web.Controllers
                 EndDate = project.EndDate,
                 OwnerName = project.OwnerName,
                 CreatedAt = project.CreatedAt,
+                CurrentUserRole = currentUserRole,
                 TeamMembers = teamMembers.Select(tm => new TeamMemberViewModel
                 {
                     UserId = tm.UserId,
@@ -282,22 +302,21 @@ namespace ProjectTracker.Web.Controllers
             var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             var isAdmin = User.IsInRole("Admin");
 
-            if (string.IsNullOrEmpty(currentUserId))
+            var canManage = await _teamService.CanUserManageTeamAsync(projectId, currentUserId ?? string.Empty);
+            if (!canManage && !isAdmin)
             {
-                return RedirectToAction("Login", "Auth");
+                return Json(new { success = false, message = "You don't have permission to add team members." });
             }
 
-            // Check if current user has permission
-            var project = await _projectService.GetProjectByIdAsync(projectId, currentUserId, isAdmin);
-            if (project == null)
+            try
             {
-                return RedirectToAction("Error404", "Home");
+                var teamMember = await _teamService.AddTeamMemberAsync(projectId, userId, role, currentUserId ?? string.Empty);
+                return Json(new { success = true, message = "Team member added successfully!", teamMember });
             }
-
-            await _teamService.AddTeamMemberAsync(projectId, userId, role, currentUserId);
-
-            TempData["SuccessMessage"] = "Team member added successfully!";
-            return RedirectToAction(nameof(Details), new { id = projectId });
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message });
+            }
         }
 
         [HttpPost]
@@ -308,15 +327,110 @@ namespace ProjectTracker.Web.Controllers
             var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             var isAdmin = User.IsInRole("Admin");
 
-            if (string.IsNullOrEmpty(currentUserId))
+            var canManage = await _teamService.CanUserManageTeamAsync(projectId, currentUserId ?? string.Empty);
+            if (!canManage && !isAdmin)
             {
-                return RedirectToAction("Login", "Auth");
+                return Json(new { success = false, message = "You don't have permission to remove team members." });
             }
 
-            await _teamService.RemoveTeamMemberAsync(projectId, userId, currentUserId);
+            var project = await _projectService.GetProjectByIdAsync(projectId, currentUserId ?? string.Empty, isAdmin);
+            if (project != null && project.OwnerId == userId)
+            {
+                return Json(new { success = false, message = "Cannot remove the project owner." });
+            }
 
-            TempData["SuccessMessage"] = "Team member removed successfully!";
-            return RedirectToAction(nameof(Details), new { id = projectId });
+            var result = await _teamService.RemoveTeamMemberAsync(projectId, userId, currentUserId ?? string.Empty);
+
+            if (result)
+            {
+                return Json(new { success = true, message = "Team member removed successfully!" });
+            }
+
+            return Json(new { success = false, message = "Failed to remove team member." });
+        }
+        [HttpGet]
+        [Authorize]
+        public async Task<IActionResult> ManageTeam(int id)
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var isAdmin = User.IsInRole("Admin");
+
+            var project = await _projectService.GetProjectByIdAsync(id, userId ?? string.Empty, isAdmin);
+
+            if (project == null)
+            {
+                return RedirectToAction("Error404", "Home");
+            }
+
+            // Провери дали потребителят може да управлява екипа
+            var canManage = await _teamService.CanUserManageTeamAsync(id, userId ?? string.Empty);
+            if (!canManage && !isAdmin)
+            {
+                return RedirectToAction("AccessDenied", "Home");
+            }
+
+            var teamMembers = await _teamService.GetTeamMembersAsync(id);
+            var availableUsers = await _teamService.GetAvailableUsersForProjectAsync(id);
+            var projectManagers = await _teamService.GetProjectManagersAsync();
+
+            var viewModel = new ManageTeamViewModel
+            {
+                ProjectId = project.Id,
+                ProjectName = project.Name,
+                TeamMembers = teamMembers.ToList(),
+                AvailableUsers = availableUsers.ToList(),
+                ProjectManagers = projectManagers.ToList(),
+                CurrentUserRole = await GetUserRoleInProject(id, userId ?? string.Empty)
+            };
+
+            return View(viewModel);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Authorize]
+        public async Task<IActionResult> UpdateTeamMemberRole(int projectId, string userId, string role)
+        {
+            var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var isAdmin = User.IsInRole("Admin");
+
+            var canManage = await _teamService.CanUserManageTeamAsync(projectId, currentUserId ?? string.Empty);
+            if (!canManage && !isAdmin)
+            {
+                return Json(new { success = false, message = "You don't have permission to update team member roles." });
+            }
+
+            var project = await _projectService.GetProjectByIdAsync(projectId, currentUserId ?? string.Empty, isAdmin);
+            if (project != null && project.OwnerId == userId)
+            {
+                return Json(new { success = false, message = "Cannot change the project owner's role." });
+            }
+
+            var result = await _teamService.UpdateTeamMemberRoleAsync(projectId, userId, role, currentUserId ?? string.Empty);
+
+            if (result)
+            {
+                return Json(new { success = true, message = "Team member role updated successfully!" });
+            }
+
+            return Json(new { success = false, message = "Failed to update team member role." });
+        }
+
+        private async Task<string> GetUserRoleInProject(int projectId, string userId)
+        {
+            var teamMember = await _teamService.GetTeamMemberAsync(projectId, userId);
+            if (teamMember != null)
+            {
+                return teamMember.Role;
+            }
+
+            var project = await _projectService.GetProjectByIdAsync(projectId, userId, false);
+            if (project != null && project.OwnerId == userId)
+            {
+                return "Owner";
+            }
+
+            return "None";
         }
     }
 }

@@ -4,6 +4,7 @@
     ViewData["Title"] = Model.Name;
 }
 
+<!-- Page Header -->
 <div class="mb-4">
     <div class="d-flex justify-content-between align-items-center">
         <div>
@@ -11,7 +12,7 @@
             <span class="badge @Model.StatusBadgeClass fs-6">@Model.Status</span>
         </div>
         <div>
-            @if (User.IsInRole("Admin") || User.IsInRole("ProjectManager"))
+            @if (User.IsInRole("Admin") || User.IsInRole("ProjectManager") || Model.CurrentUserRole == "Owner")
             {
                 <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning btn-sm">
                     <i class="fas fa-edit"></i> Edit
@@ -26,11 +27,13 @@
 </div>
 
 <div class="row">
+    <!-- Main Content Column -->
     <div class="col-md-8">
+
         <!-- Description Card -->
-        <div class="card mb-4">
-            <div class="card-header">
-                <h5 class="mb-0"><i class="fas fa-align-left"></i> Description</h5>
+        <div class="card mb-4 shadow-sm">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="fas fa-align-left text-primary"></i> Description</h5>
             </div>
             <div class="card-body">
                 @if (string.IsNullOrEmpty(Model.Description))
@@ -43,11 +46,11 @@
                 }
             </div>
         </div>
-        
+
         <!-- Work Items Card -->
-        <div class="card mb-4">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="mb-0"><i class="fas fa-tasks"></i> Work Items (@Model.WorkItems.Count)</h5>
+        <div class="card mb-4 shadow-sm">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="fas fa-tasks text-success"></i> Work Items (@Model.WorkItems.Count)</h5>
                 <a asp-controller="WorkItems" asp-action="Create" asp-route-projectId="@Model.Id" class="btn btn-sm btn-primary">
                     <i class="fas fa-plus"></i> Add Work Item
                 </a>
@@ -55,13 +58,13 @@
             <div class="card-body">
                 @if (!Model.WorkItems.Any())
                 {
-                    <p class="text-muted text-center mb-0">No work items yet.</p>
+                    <p class="text-muted text-center mb-0">No work items yet. Click "Add Work Item" to create one.</p>
                 }
                 else
                 {
                     <div class="table-responsive">
                         <table class="table table-sm table-hover">
-                            <thead>
+                            <thead class="table-light">
                                 <tr>
                                     <th>Title</th>
                                     <th>Status</th>
@@ -74,7 +77,7 @@
                             <tbody>
                                 @foreach (var item in Model.WorkItems)
                                 {
-                                    <tr>
+                                    <tr class="@(item.IsOverdue ? "table-danger" : "")">
                                         <td>
                                             <a asp-controller="WorkItems" asp-action="Details" asp-route-id="@item.Id" class="text-decoration-none">
                                                 @item.Title
@@ -82,7 +85,17 @@
                                         </td>
                                         <td><span class="badge @item.StatusBadgeClass">@item.Status</span></td>
                                         <td><span class="badge @item.PriorityBadgeClass">@item.Priority</span></td>
-                                        <td>@item.AssigneeName</td>
+                                        <td>
+                                            @if (item.AssigneeName == "Unassigned")
+                                            {
+                                                <span class="text-muted"><i class="fas fa-user-slash"></i> Unassigned</span>
+                                            }
+                                            else
+                                            {
+                                                <i class="fas fa-user"></i> 
+                                                @item.AssigneeName
+                                            }
+                                        </td>
                                         <td class="@(item.IsOverdue ? "text-danger fw-bold" : "")">
                                             @if (item.IsOverdue)
                                             {
@@ -104,12 +117,14 @@
             </div>
         </div>
     </div>
-    
+
+    <!-- Sidebar Column -->
     <div class="col-md-4">
-        <!-- Info Card -->
-        <div class="card mb-4">
-            <div class="card-header">
-                <h5 class="mb-0"><i class="fas fa-info-circle"></i> Project Info</h5>
+
+        <!-- Project Info Card -->
+        <div class="card mb-4 shadow-sm">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="fas fa-info-circle text-info"></i> Project Info</h5>
             </div>
             <div class="card-body">
                 <div class="mb-3">
@@ -130,11 +145,17 @@
                 </div>
             </div>
         </div>
-        
+
         <!-- Team Members Card -->
-        <div class="card mb-4">
-            <div class="card-header">
-                <h5 class="mb-0"><i class="fas fa-users"></i> Team Members (@Model.TeamMembers.Count)</h5>
+        <div class="card mb-4 shadow-sm">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="fas fa-users text-primary"></i> Team Members (@Model.TeamMembers.Count)</h5>
+                @if (Model.CurrentUserRole == "Owner" || Model.CurrentUserRole == "ProjectManager" || User.IsInRole("Admin"))
+                {
+                    <a asp-action="ManageTeam" asp-route-id="@Model.Id" class="btn btn-sm btn-primary">
+                        <i class="fas fa-cog"></i> Manage
+                    </a>
+                }
             </div>
             <div class="card-body">
                 @if (!Model.TeamMembers.Any())
@@ -147,28 +168,68 @@
                         @foreach (var member in Model.TeamMembers)
                         {
                             <li class="mb-2 pb-2 border-bottom">
-                                <i class="fas fa-user-circle"></i> <strong>@member.UserName</strong>
-                                <br />
-                                <small class="text-muted ms-3">Role: @member.Role</small>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <i class="fas fa-user-circle"></i> <strong>@member.UserName</strong>
+                                        <br />
+                                        <small class="text-muted ms-3">
+                                            <span class="badge bg-secondary">@member.Role</span>
+                                        </small>
+                                    </div>
+                                    @if (member.Role == "ProjectManager")
+                                    {
+                                        <span class="badge bg-info">Team Lead</span>
+                                    }
+                                </div>
                             </li>
                         }
                     </ul>
                 }
             </div>
         </div>
-        
-        <!-- Stats Card -->
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0"><i class="fas fa-chart-line"></i> Quick Stats</h5>
+
+        <!-- Quick Stats Card -->
+        <div class="card shadow-sm">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="fas fa-chart-line text-warning"></i> Quick Stats</h5>
             </div>
             <div class="card-body text-center">
-                <h2 class="mb-0">@Model.WorkItems.Count(w => w.Status == "Done") / @Model.WorkItems.Count</h2>
+                @{
+                    var totalTasks = Model.WorkItems.Count;
+                    var completedTasks = Model.WorkItems.Count(w => w.Status == "Done");
+                    var completionPercentage = totalTasks > 0 ? Math.Round((double)completedTasks / totalTasks * 100, 1) : 0;
+                }
+
+                <h2 class="mb-0">@completedTasks / @totalTasks</h2>
                 <p class="text-muted">Tasks Completed</p>
-                <div class="progress mb-2">
-                    <div class="progress-bar bg-success" style="width: @(Model.WorkItems.Count > 0 ? (double)Model.WorkItems.Count(w => w.Status == "Done") / Model.WorkItems.Count * 100 : 0)%"></div>
+
+                <div class="progress mb-3" style="height: 10px;">
+                    <div class="progress-bar bg-success" style="width: @completionPercentage%"></div>
                 </div>
-                <small class="text-muted">@(Model.WorkItems.Count > 0 ? Math.Round((double)Model.WorkItems.Count(w => w.Status == "Done") / Model.WorkItems.Count * 100, 1) : 0)% Complete</small>
+
+                <div class="row mt-4">
+                    <div class="col-6">
+                        <small class="text-muted">To Do</small>
+                        <h5 class="mb-0">@Model.WorkItems.Count(w => w.Status == "ToDo")</h5>
+                    </div>
+                    <div class="col-6">
+                        <small class="text-muted">In Progress</small>
+                        <h5 class="mb-0">@Model.WorkItems.Count(w => w.Status == "InProgress")</h5>
+                    </div>
+                </div>
+
+                <hr />
+
+                <div class="row">
+                    <div class="col-6">
+                        <small class="text-muted">Blocked</small>
+                        <h5 class="mb-0 text-danger">@Model.WorkItems.Count(w => w.Status == "Blocked")</h5>
+                    </div>
+                    <div class="col-6">
+                        <small class="text-muted">Code Review</small>
+                        <h5 class="mb-0 text-info">@Model.WorkItems.Count(w => w.Status == "CodeReview")</h5>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
