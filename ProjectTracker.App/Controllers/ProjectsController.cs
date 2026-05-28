@@ -35,7 +35,6 @@ namespace ProjectTracker.Web.Controllers
                 return View(new ProjectIndexViewModel());
             }
 
-            // Фиксирай PageSize на 6 за Projects
             filter.PageSize = 6;
 
             var filterDto = new ProjectFilterDto
@@ -45,7 +44,7 @@ namespace ProjectTracker.Web.Controllers
                 SortBy = filter.SortBy,
                 SortDescending = filter.SortDescending,
                 Page = filter.Page,
-                PageSize = filter.PageSize,  // Сега е 6
+                PageSize = filter.PageSize,
                 UserId = userId ?? string.Empty,
                 IsAdmin = isAdmin
             };

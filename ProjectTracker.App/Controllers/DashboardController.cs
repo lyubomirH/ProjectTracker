@@ -24,7 +24,6 @@ namespace ProjectTracker.Web.Controllers
 
             var dashboard = await _dashboardService.GetDashboardDataAsync(userId ?? string.Empty, isAdmin);
 
-            // Трябва да върне DashboardDto, а не WorkItemIndexViewModel
             return View(dashboard);
         }
 
