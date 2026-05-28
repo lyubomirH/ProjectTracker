@@ -5,6 +5,7 @@ using ProjectTracker.Data.Constants;
 using ProjectTracker.Data.Entities;
 using ProjectTracker.Data.Seed;
 using ProjectTracker.Services.Extensions;
+using ProjectTracker.Web.Middlewares;
 
 namespace ProjectTracker.Web
 {
@@ -91,6 +92,7 @@ namespace ProjectTracker.Web
             app.UseHttpsRedirection();
             app.UseStaticFiles();
             app.UseRouting();
+            app.UseRequestLogging();
 
             app.UseAuthentication();
             app.UseAuthorization();
