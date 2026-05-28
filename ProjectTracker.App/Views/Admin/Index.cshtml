@@ -1,0 +1,191 @@
+﻿@model ProjectTracker.Web.ViewModels.Admin.AdminStatisticsViewModel
+
+@{
+    ViewData["Title"] = "Admin Dashboard";
+}
+
+<div class="mb-4">
+    <h1><i class="fas fa-users-cog"></i> Admin Dashboard</h1>
+    <p class="text-muted">System administration and management.</p>
+</div>
+
+<!-- Statistics Cards -->
+<div class="row g-4 mb-4">
+    <div class="col-md-3">
+        <div class="card bg-primary text-white shadow-sm">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-title text-white-50">Total Users</h6>
+                        <h2 class="mb-0">@Model.TotalUsers</h2>
+                    </div>
+                    <i class="fas fa-users fa-3x text-white-50"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-success text-white shadow-sm">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-title text-white-50">Active Users</h6>
+                        <h2 class="mb-0">@Model.ActiveUsers</h2>
+                    </div>
+                    <i class="fas fa-user-check fa-3x text-white-50"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-info text-white shadow-sm">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-title text-white-50">Total Projects</h6>
+                        <h2 class="mb-0">@Model.TotalProjects</h2>
+                    </div>
+                    <i class="fas fa-project-diagram fa-3x text-white-50"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-warning text-white shadow-sm">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-title text-white-50">Total Tasks</h6>
+                        <h2 class="mb-0">@Model.TotalWorkItems</h2>
+                    </div>
+                    <i class="fas fa-tasks fa-3x text-white-50"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="fas fa-clock"></i> Recent Projects</h5>
+            </div>
+            <div class="card-body">
+                @if (!Model.RecentProjects.Any())
+                {
+                    <p class="text-muted text-center py-3">No projects yet.</p>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Owner</th>
+                                    <th>Status</th>
+                                    <th>Created</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var project in Model.RecentProjects)
+                                {
+                                    <tr>
+                                        <td>@project.Name</td>
+                                        <td>@project.OwnerName</td>
+                                        <td><span class="badge bg-secondary">@project.Status</span></td>
+                                        <td>@project.CreatedAt.ToString("yyyy-MM-dd")</td>
+                                        <td>
+                                            <a asp-controller="Projects" asp-action="Details" asp-route-id="@project.Id" class="btn btn-sm btn-outline-primary">
+                                                View
+                                            </a>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="fas fa-user-plus"></i> Recent Users</h5>
+            </div>
+            <div class="card-body">
+                @if (!Model.RecentUsers.Any())
+                {
+                    <p class="text-muted text-center py-3">No users yet.</p>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Email</th>
+                                    <th>Joined</th>
+                                    <th>Status</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var user in Model.RecentUsers)
+                                {
+                                    <tr>
+                                        <td>@user.FullName</td>
+                                        <td>@user.Email</td>
+                                        <td>@user.CreatedAt.ToString("yyyy-MM-dd")</td>
+                                        <td>
+                                            @if (user.IsActive)
+                                            {
+                                                <span class="badge bg-success">Active</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-danger">Inactive</span>
+                                            }
+                                        </td>
+                                        <td>
+                                            <a asp-action="EditUser" asp-route-id="@user.Id" class="btn btn-sm btn-outline-primary">
+                                                Edit
+                                            </a>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="fas fa-chart-line"></i> Quick Actions</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-flex gap-3 flex-wrap">
+                    <a asp-action="Users" class="btn btn-outline-primary">
+                        <i class="fas fa-users"></i> Manage Users
+                    </a>
+                    <a asp-action="Projects" class="btn btn-outline-success">
+                        <i class="fas fa-project-diagram"></i> Manage Projects
+                    </a>
+                    <a asp-action="Roles" class="btn btn-outline-warning">
+                        <i class="fas fa-tags"></i> Manage Roles
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
