@@ -43,12 +43,15 @@
             <!-- Project Filter -->
             <div class="col-md-2">
                 <label class="form-label fw-bold">Project</label>
-                <select name="projectId" class="form-select">
+                <select name="projectId" class="form-select" id="projectFilter">
                     <option value="">All Projects</option>
-                    @foreach (var project in Model.Projects)
+                    @if (Model.Projects != null && Model.Projects.Any())
                     {
-                        var selected = Model.Filter.ProjectId == project.Id;
-                        <option value="@project.Id" selected="@selected">@project.Name</option>
+                        @foreach (var project in Model.Projects)
+                        {
+                            var selected = Model.Filter?.ProjectId == project.Id;
+                            <option value="@project.Id" selected="@selected">@project.Name</option>
+                        }
                     }
                 </select>
             </div>

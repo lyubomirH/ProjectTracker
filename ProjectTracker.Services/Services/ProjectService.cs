@@ -388,5 +388,28 @@ namespace ProjectTracker.Services.Services
                 PageSize = filter.PageSize
             };
         }
+
+        public async Task<List<ProjectDropdownDto>> GetUserProjectsForDropdownAsync(string userId, bool isAdmin)
+        {
+            var query = _context.Projects
+                .Where(p => !p.IsDeleted);
+
+            // Filter only projects user is part of
+            if (!isAdmin && !string.IsNullOrEmpty(userId))
+            {
+                query = query.Where(p =>
+                    p.OwnerId == userId ||
+                    p.TeamMembers.Any(tm => tm.UserId == userId));
+            }
+
+            return await query
+                .OrderBy(p => p.Name)
+                .Select(p => new ProjectDropdownDto
+                {
+                    Id = p.Id,
+                    Name = p.Name
+                })
+                .ToListAsync();
+        }
     }
 }

@@ -49,4 +49,9 @@
         public string AssigneeName { get; set; } = string.Empty;
         public DateTime? DueDate { get; set; }
     }
+    public class ProjectDropdownDto
+    {
+        public int Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+    }
 }

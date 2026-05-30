@@ -4,6 +4,7 @@ namespace ProjectTracker.Services.Interfaces
 {
     public interface ITeamService
     {
+        Task<List<TeamMemberSimpleDto>> GetTeamMembersForDropdownAsync(int projectId);
         Task<IEnumerable<TeamMemberDto>> GetTeamMembersAsync(int projectId);
         Task<TeamMemberDto?> GetTeamMemberAsync(int projectId, string userId);
         Task<TeamMemberDto> AddTeamMemberAsync(int projectId, string userId, string role, string addedByUserId);

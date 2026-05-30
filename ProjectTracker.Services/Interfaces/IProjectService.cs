@@ -14,5 +14,6 @@ namespace ProjectTracker.Services.Interfaces
         Task<double> GetProjectCompletionPercentageAsync(int projectId);
         Task<PaginatedResult<ProjectDto>> GetFilteredProjectsAsync(ProjectFilterDto filter);
         Task<PaginatedResult<WorkItemDto>> GetFilteredWorkItemsAsync(WorkItemFilterDto filter);
+        Task<List<ProjectDropdownDto>> GetUserProjectsForDropdownAsync(string userId, bool isAdmin);
     }
 }

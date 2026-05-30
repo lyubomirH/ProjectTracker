@@ -1,9 +1,8 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using ProjectTracker.Data;
 using ProjectTracker.Services.DTOs;
 using ProjectTracker.Services.Interfaces;
+using ProjectTracker.Web.ViewModels.Shared;
 using ProjectTracker.Web.ViewModels.WorkItems;
 using System.Security.Claims;
 
@@ -14,23 +13,22 @@ namespace ProjectTracker.Web.Controllers
     {
         private readonly IWorkItemService _workItemService;
         private readonly IProjectService _projectService;
-        private readonly ApplicationDbContext _context;
+        private readonly ITeamService _teamService;
 
         public WorkItemsController(
             IWorkItemService workItemService,
             IProjectService projectService,
-            ApplicationDbContext context)
+            ITeamService teamService)
         {
             _workItemService = workItemService;
             _projectService = projectService;
-            _context = context;
+            _teamService = teamService;
         }
 
         [HttpGet]
-        [HttpGet]
         public async Task<IActionResult> Index(int? projectId, string? searchTerm, string? status,
-    string? priority, string? assigneeId, string? sortBy, bool sortDescending = true,
-    int page = 1, int pageSize = 10)
+            string? priority, string? assigneeId, string? sortBy, bool sortDescending = true,
+            int page = 1, int pageSize = 10)
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             var isAdmin = User.IsInRole("Admin");
@@ -55,20 +53,8 @@ namespace ProjectTracker.Web.Controllers
 
             var result = await _projectService.GetFilteredWorkItemsAsync(filterDto);
 
-            // Get projects for filter dropdown - ONLY projects user is part of
-            var projectsQuery = _context.Projects
-                .Where(p => !p.IsDeleted);
-
-            if (!isAdmin && !string.IsNullOrEmpty(userId))
-            {
-                projectsQuery = projectsQuery.Where(p =>
-                    p.OwnerId == userId ||
-                    p.TeamMembers.Any(tm => tm.UserId == userId));
-            }
-
-            var projects = await projectsQuery
-                .Select(p => new ProjectDropdownViewModel { Id = p.Id, Name = p.Name })
-                .ToListAsync();
+            // Get projects for dropdown - ONLY projects user is part of
+            var projects = await _projectService.GetUserProjectsForDropdownAsync(userId ?? string.Empty, isAdmin);
 
             var viewModel = new WorkItemIndexViewModel
             {
@@ -103,7 +89,11 @@ namespace ProjectTracker.Web.Controllers
                     PageSize = result.PageSize,
                     TotalCount = result.TotalCount
                 },
-                Projects = projects
+                Projects = projects.Select(p => new ProjectDropdownViewModel
+                {
+                    Id = p.Id,
+                    Name = p.Name
+                }).ToList()
             };
 
             return View(viewModel);
@@ -123,11 +113,7 @@ namespace ProjectTracker.Web.Controllers
             }
 
             // Get team members for assignee dropdown
-            var teamMembers = await _context.TeamMembers
-                .Include(tm => tm.User)
-                .Where(tm => tm.ProjectId == projectId && tm.IsActive)
-                .Select(tm => new { tm.UserId, tm.User.FullName })
-                .ToListAsync();
+            var teamMembers = await _teamService.GetTeamMembersForDropdownAsync(projectId);
 
             ViewBag.TeamMembers = teamMembers;
 
@@ -149,16 +135,12 @@ namespace ProjectTracker.Web.Controllers
         {
             if (!ModelState.IsValid)
             {
-                var project = await _context.Projects.FindAsync(model.ProjectId);
+                var project = await _projectService.GetProjectByIdAsync(model.ProjectId, string.Empty, false);
                 model.ProjectName = project?.Name ?? "";
 
-                var teamMembers = await _context.TeamMembers
-                    .Include(tm => tm.User)
-                    .Where(tm => tm.ProjectId == model.ProjectId && tm.IsActive)
-                    .Select(tm => new { tm.UserId, tm.User.FullName })
-                    .ToListAsync();
+                var teamMembers = await _teamService.GetTeamMembersAsync(model.ProjectId);
+                ViewBag.TeamMembers = teamMembers.Select(tm => new { tm.UserId, tm.UserName });
 
-                ViewBag.TeamMembers = teamMembers;
                 return View(model);
             }
 
@@ -239,11 +221,7 @@ namespace ProjectTracker.Web.Controllers
             }
 
             // Get team members for assignee dropdown
-            var teamMembers = await _context.TeamMembers
-                .Include(tm => tm.User)
-                .Where(tm => tm.ProjectId == workItem.ProjectId && tm.IsActive)
-                .Select(tm => new { tm.UserId, tm.User.FullName })
-                .ToListAsync();
+            var teamMembers = await _teamService.GetTeamMembersForDropdownAsync(workItem.ProjectId);
 
             ViewBag.TeamMembers = teamMembers;
 
@@ -271,16 +249,12 @@ namespace ProjectTracker.Web.Controllers
         {
             if (!ModelState.IsValid)
             {
-                var project = await _context.Projects.FindAsync(model.ProjectId);
+                var project = await _projectService.GetProjectByIdAsync(model.ProjectId, string.Empty, false);
                 model.ProjectName = project?.Name ?? "";
 
-                var teamMembers = await _context.TeamMembers
-                    .Include(tm => tm.User)
-                    .Where(tm => tm.ProjectId == model.ProjectId && tm.IsActive)
-                    .Select(tm => new { tm.UserId, tm.User.FullName })
-                    .ToListAsync();
+                var teamMembers = await _teamService.GetTeamMembersAsync(model.ProjectId);
+                ViewBag.TeamMembers = teamMembers.Select(tm => new { tm.UserId, tm.UserName });
 
-                ViewBag.TeamMembers = teamMembers;
                 return View(model);
             }
 
@@ -376,6 +350,27 @@ namespace ProjectTracker.Web.Controllers
             }
 
             return Ok(new { success = true, message = "Status updated successfully" });
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetWorkItemsByProject(int projectId)
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var isAdmin = User.IsInRole("Admin");
+
+            var workItems = await _workItemService.GetWorkItemsAsync(projectId, userId ?? string.Empty, isAdmin);
+
+            var result = workItems.Select(w => new
+            {
+                w.Id,
+                w.Title,
+                w.Status,
+                w.Priority,
+                w.AssigneeName,
+                DueDate = w.DueDate?.ToString("yyyy-MM-dd")
+            });
+
+            return Ok(result);
         }
     }
 }

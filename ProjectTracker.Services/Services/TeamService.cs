@@ -22,27 +22,121 @@ namespace ProjectTracker.Services.Services
             _serviceProvider = serviceProvider;
         }
 
-        public async Task<IEnumerable<TeamMemberDto>> GetTeamMembersAsync(int projectId)
+        public async Task<List<TeamMemberSimpleDto>> GetTeamMembersForDropdownAsync(int projectId)
         {
-            var members = await _context.TeamMembers
+            var members = new List<TeamMemberSimpleDto>();
+
+            // Get project with owner
+            var project = await _context.Projects
+                .Include(p => p.Owner)
+                .FirstOrDefaultAsync(p => p.Id == projectId && !p.IsDeleted);
+
+            if (project == null)
+            {
+                Console.WriteLine($"Project {projectId} not found");
+                return members;
+            }
+
+            Console.WriteLine($"Project found: {project.Name}, Owner: {project.Owner?.FullName}");
+
+            // Add project owner
+            if (project.Owner != null)
+            {
+                members.Add(new TeamMemberSimpleDto
+                {
+                    UserId = project.Owner.Id,
+                    UserName = $"{project.Owner.FullName} (Owner)",
+                    Role = "Owner"
+                });
+                Console.WriteLine($"Added owner: {project.Owner.FullName}");
+            }
+
+            // Get team members from TeamMembers table
+            var teamMembers = await _context.TeamMembers
                 .Include(tm => tm.User)
                 .Where(tm => tm.ProjectId == projectId && tm.IsActive)
                 .ToListAsync();
 
-            var project = await _context.Projects.FindAsync(projectId);
+            Console.WriteLine($"Found {teamMembers.Count} team members in TeamMembers table");
 
-            return members.Select(m => new TeamMemberDto
+            foreach (var tm in teamMembers)
             {
-                Id = m.Id,
-                ProjectId = m.ProjectId,
-                ProjectName = project?.Name ?? string.Empty,
-                UserId = m.UserId,
-                UserName = m.User.FullName,
-                UserEmail = m.User.Email ?? string.Empty,
-                Role = m.Role.ToString(),
-                JoinedAt = m.JoinedAt,
-                IsActive = m.IsActive
-            });
+                // Skip if this is the owner (already added)
+                if (tm.UserId == project.OwnerId) continue;
+
+                if (tm.User != null)
+                {
+                    members.Add(new TeamMemberSimpleDto
+                    {
+                        UserId = tm.UserId,
+                        UserName = $"{tm.User.FullName} ({tm.Role})",
+                        Role = tm.Role.ToString()
+                    });
+                    Console.WriteLine($"Added team member: {tm.User.FullName} - {tm.Role}");
+                }
+                else
+                {
+                    Console.WriteLine($"Warning: Team member with UserId {tm.UserId} has null User");
+                }
+            }
+
+            Console.WriteLine($"Total members for dropdown: {members.Count}");
+            return members;
+        }
+        public async Task<IEnumerable<TeamMemberDto>> GetTeamMembersAsync(int projectId)
+        {
+            var project = await _context.Projects
+                .Include(p => p.Owner)
+                .FirstOrDefaultAsync(p => p.Id == projectId && !p.IsDeleted);
+
+            if (project == null)
+            {
+                return new List<TeamMemberDto>();
+            }
+
+            var result = new List<TeamMemberDto>();
+
+            if (project.Owner != null)
+            {
+                result.Add(new TeamMemberDto
+                {
+                    Id = 0,
+                    ProjectId = projectId,
+                    ProjectName = project.Name,
+                    UserId = project.Owner.Id,
+                    UserName = project.Owner.FullName,
+                    UserEmail = project.Owner.Email ?? string.Empty,
+                    Role = "Owner",
+                    JoinedAt = project.CreatedAt,
+                    IsActive = true
+                });
+            }
+
+            var teamMembers = await _context.TeamMembers
+                .Include(tm => tm.User)
+                .Where(tm => tm.ProjectId == projectId && tm.IsActive)
+                .ToListAsync();
+
+            foreach (var tm in teamMembers)
+            {
+
+                if (tm.UserId == project.OwnerId) continue;
+
+                result.Add(new TeamMemberDto
+                {
+                    Id = tm.Id,
+                    ProjectId = tm.ProjectId,
+                    ProjectName = project.Name,
+                    UserId = tm.UserId,
+                    UserName = tm.User?.FullName ?? "Unknown",
+                    UserEmail = tm.User?.Email ?? string.Empty,
+                    Role = tm.Role.ToString(),
+                    JoinedAt = tm.JoinedAt,
+                    IsActive = tm.IsActive
+                });
+            }
+
+            return result;
         }
 
         public async Task<TeamMemberDto?> GetTeamMemberAsync(int projectId, string userId)

@@ -1,8 +1,11 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using ProjectTracker.Services.DTOs;
 using ProjectTracker.Services.Interfaces;
 using ProjectTracker.Web.ViewModels.Projects;
+using ProjectTracker.Web.ViewModels.Shared;
+using ProjectTracker.Web.ViewModels.WorkItems;
 using System.Security.Claims;
 
 namespace ProjectTracker.Web.Controllers
@@ -32,6 +35,7 @@ namespace ProjectTracker.Web.Controllers
 
             // Set default page size
             if (filter.PageSize <= 0) filter.PageSize = 6;
+            if (filter.Page < 1) filter.Page = 1;
 
             var filterDto = new ProjectFilterDto
             {
@@ -63,7 +67,15 @@ namespace ProjectTracker.Web.Controllers
                     CompletedWorkItemsCount = p.CompletedWorkItemsCount,
                     CreatedAt = p.CreatedAt
                 }).ToList(),
-                Filter = filter,
+                Filter = new ViewModels.Projects.ProjectFilterViewModel
+                {
+                    SearchTerm = filter.SearchTerm,
+                    Status = filter.Status,
+                    SortBy = filter.SortBy,
+                    SortDescending = filter.SortDescending,
+                    Page = filter.Page,
+                    PageSize = filter.PageSize
+                },
                 Pagination = new PaginationViewModel
                 {
                     CurrentPage = result.Page,

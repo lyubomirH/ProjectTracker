@@ -2,7 +2,7 @@
 
 @{
     ViewData["Title"] = "Create Work Item";
-    var teamMembers = ViewBag.TeamMembers as List<dynamic> ?? new List<dynamic>();
+    var teamMembers = ViewBag.TeamMembers as List<ProjectTracker.Services.DTOs.TeamMemberSimpleDto> ?? new List<ProjectTracker.Services.DTOs.TeamMemberSimpleDto>();
 }
 
 <div class="row justify-content-center">
@@ -18,6 +18,7 @@
                 </div>
 
                 <form asp-action="Create" method="post">
+                    @Html.AntiForgeryToken()
                     <input type="hidden" asp-for="ProjectId" />
                     <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
 
@@ -65,19 +66,28 @@
                     <div class="row">
                         <div class="col-md-6">
                             <div class="mb-3">
-                                <label asp-for="AssigneeId" class="form-label fw-bold"></label>
+                                <label asp-for="AssigneeId" class="form-label fw-bold">Assign To</label>
                                 <select asp-for="AssigneeId" class="form-select">
-                                    <option value="">-- Unassigned --</option>
-                                    @foreach (var member in teamMembers)
+                                    <option value="">-- Select Team Member --</option>
+                                    @if (teamMembers != null && teamMembers.Any())
                                     {
-                                        <option value="@member.UserId">@member.FullName</option>
+                                        @foreach (var member in teamMembers)
+                                        {
+                                            <option value="@member.UserId">@member.UserName</option>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <option value="" disabled>No team members available</option>
                                     }
                                 </select>
                                 <span asp-validation-for="AssigneeId" class="text-danger"></span>
-                                @if (!teamMembers.Any())
+                                @if (teamMembers == null || !teamMembers.Any())
                                 {
                                     <small class="text-warning d-block mt-1">
-                                        <i class="fas fa-exclamation-triangle"></i> No team members available. Add team members to the project first.
+                                        <i class="fas fa-exclamation-triangle"></i>
+                                        No team members available.
+                                        <a asp-controller="Projects" asp-action="ManageTeam" asp-route-id="@Model.ProjectId">Add team members</a> first.
                                     </small>
                                 }
                             </div>
