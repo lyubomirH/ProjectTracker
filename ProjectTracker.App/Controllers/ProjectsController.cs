@@ -30,12 +30,8 @@ namespace ProjectTracker.Web.Controllers
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             var isAdmin = User.IsInRole("Admin");
 
-            if (string.IsNullOrEmpty(userId) && !isAdmin)
-            {
-                return View(new ProjectIndexViewModel());
-            }
-
-            filter.PageSize = 6;
+            // Set default page size
+            if (filter.PageSize <= 0) filter.PageSize = 6;
 
             var filterDto = new ProjectFilterDto
             {

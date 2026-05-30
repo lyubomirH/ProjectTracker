@@ -27,19 +27,15 @@ namespace ProjectTracker.Web.Controllers
         }
 
         [HttpGet]
+        [HttpGet]
         public async Task<IActionResult> Index(int? projectId, string? searchTerm, string? status,
     string? priority, string? assigneeId, string? sortBy, bool sortDescending = true,
-    int page = 1, int pageSize = 10)  // pageSize default = 10
+    int page = 1, int pageSize = 10)
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             var isAdmin = User.IsInRole("Admin");
 
-            if (string.IsNullOrEmpty(userId) && !isAdmin)
-            {
-                return View(new WorkItemIndexViewModel());
-            }
-
-            // Фиксирай PageSize на 10 за WorkItems (презаписва каквото е подадено)
+            // Fixed page size for work items
             pageSize = 10;
 
             var filterDto = new WorkItemFilterDto
@@ -52,16 +48,25 @@ namespace ProjectTracker.Web.Controllers
                 SortBy = sortBy ?? "CreatedAt",
                 SortDescending = sortDescending,
                 Page = page,
-                PageSize = pageSize,  // Сега е 10
+                PageSize = pageSize,
                 UserId = userId ?? string.Empty,
                 IsAdmin = isAdmin
             };
 
             var result = await _projectService.GetFilteredWorkItemsAsync(filterDto);
 
-            // Get projects for filter dropdown
-            var projects = await _context.Projects
-                .Where(p => !p.IsDeleted)
+            // Get projects for filter dropdown - ONLY projects user is part of
+            var projectsQuery = _context.Projects
+                .Where(p => !p.IsDeleted);
+
+            if (!isAdmin && !string.IsNullOrEmpty(userId))
+            {
+                projectsQuery = projectsQuery.Where(p =>
+                    p.OwnerId == userId ||
+                    p.TeamMembers.Any(tm => tm.UserId == userId));
+            }
+
+            var projects = await projectsQuery
                 .Select(p => new ProjectDropdownViewModel { Id = p.Id, Name = p.Name })
                 .ToListAsync();
 

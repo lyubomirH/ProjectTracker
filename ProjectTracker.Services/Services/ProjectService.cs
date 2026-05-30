@@ -22,9 +22,10 @@ namespace ProjectTracker.Services.Services
                 .Include(p => p.Owner)
                 .Include(p => p.TeamMembers)
                 .Include(p => p.WorkItems)
-                .Where(p => !p.IsDeleted);  // Само веднъж
+                .Where(p => !p.IsDeleted);
 
-            if (!isAdmin)
+            // Non-admin users see only projects they are part of
+            if (!isAdmin && !string.IsNullOrEmpty(userId))
             {
                 query = query.Where(p =>
                     p.OwnerId == userId ||
@@ -231,25 +232,29 @@ namespace ProjectTracker.Services.Services
                 .Include(p => p.WorkItems)
                 .Where(p => !p.IsDeleted);
 
-            if (!filter.IsAdmin)
+            // Filter by user permissions - show only projects user is part of
+            if (!filter.IsAdmin && !string.IsNullOrEmpty(filter.UserId))
             {
                 query = query.Where(p =>
                     p.OwnerId == filter.UserId ||
                     p.TeamMembers.Any(tm => tm.UserId == filter.UserId));
             }
 
+            // Filter by status
             if (!string.IsNullOrEmpty(filter.Status) && filter.Status != "All")
             {
                 var status = Enum.Parse<ProjectStatus>(filter.Status);
                 query = query.Where(p => p.Status == status);
             }
 
+            // Search by name
             if (!string.IsNullOrEmpty(filter.SearchTerm))
             {
                 query = query.Where(p => p.Name.Contains(filter.SearchTerm) ||
                                          (p.Description != null && p.Description.Contains(filter.SearchTerm)));
             }
 
+            // Sorting
             query = (filter.SortBy?.ToLower()) switch
             {
                 "name" => filter.SortDescending ? query.OrderByDescending(p => p.Name) : query.OrderBy(p => p.Name),
@@ -259,6 +264,7 @@ namespace ProjectTracker.Services.Services
                 _ => filter.SortDescending ? query.OrderByDescending(p => p.CreatedAt) : query.OrderBy(p => p.CreatedAt)
             };
 
+            // Pagination
             var totalCount = await query.CountAsync();
             var items = await query
                 .Skip((filter.Page - 1) * filter.PageSize)

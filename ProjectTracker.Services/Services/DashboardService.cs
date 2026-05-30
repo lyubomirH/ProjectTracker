@@ -18,12 +18,12 @@ namespace ProjectTracker.Services.Services
 
         public async Task<DashboardDto> GetDashboardDataAsync(string userId, bool isAdmin)
         {
-            // Projects query
+            // Projects query - only projects user is part of
             var projectsQuery = _context.Projects
                 .Include(p => p.WorkItems)
                 .Where(p => !p.IsDeleted);
 
-            if (!isAdmin)
+            if (!isAdmin && !string.IsNullOrEmpty(userId))
             {
                 projectsQuery = projectsQuery.Where(p =>
                     p.OwnerId == userId ||
@@ -32,12 +32,12 @@ namespace ProjectTracker.Services.Services
 
             var projects = await projectsQuery.ToListAsync();
 
-            // WorkItems query
+            // WorkItems query - only work items from user's projects
             var workItemsQuery = _context.WorkItems
                 .Include(w => w.Project)
                 .Where(w => !w.Project.IsDeleted);
 
-            if (!isAdmin)
+            if (!isAdmin && !string.IsNullOrEmpty(userId))
             {
                 workItemsQuery = workItemsQuery.Where(w =>
                     w.AssigneeId == userId ||
@@ -48,12 +48,12 @@ namespace ProjectTracker.Services.Services
 
             var workItems = await workItemsQuery.ToListAsync();
 
-            // Team members count
+            // Team members count - only from user's projects
             var teamMembersQuery = _context.TeamMembers
                 .Include(tm => tm.Project)
                 .Where(tm => tm.IsActive);
 
-            if (!isAdmin)
+            if (!isAdmin && !string.IsNullOrEmpty(userId))
             {
                 teamMembersQuery = teamMembersQuery.Where(tm =>
                     tm.Project.OwnerId == userId ||
@@ -78,27 +78,27 @@ namespace ProjectTracker.Services.Services
                 TotalTeamMembers = teamMembers.Count,
 
                 WorkItemsByStatus = new List<WorkItemByStatusDto>
-                {
-                    new() { Status = "To Do", Count = workItems.Count(w => w.Status == WorkItemStatus.ToDo), Color = "secondary" },
-                    new() { Status = "In Progress", Count = workItems.Count(w => w.Status == WorkItemStatus.InProgress), Color = "primary" },
-                    new() { Status = "Code Review", Count = workItems.Count(w => w.Status == WorkItemStatus.CodeReview), Color = "info" },
-                    new() { Status = "Testing", Count = workItems.Count(w => w.Status == WorkItemStatus.Testing), Color = "warning" },
-                    new() { Status = "Done", Count = workItems.Count(w => w.Status == WorkItemStatus.Done), Color = "success" },
-                    new() { Status = "Blocked", Count = workItems.Count(w => w.Status == WorkItemStatus.Blocked), Color = "danger" }
-                },
+        {
+            new() { Status = "To Do", Count = workItems.Count(w => w.Status == WorkItemStatus.ToDo), Color = "secondary" },
+            new() { Status = "In Progress", Count = workItems.Count(w => w.Status == WorkItemStatus.InProgress), Color = "primary" },
+            new() { Status = "Code Review", Count = workItems.Count(w => w.Status == WorkItemStatus.CodeReview), Color = "info" },
+            new() { Status = "Testing", Count = workItems.Count(w => w.Status == WorkItemStatus.Testing), Color = "warning" },
+            new() { Status = "Done", Count = workItems.Count(w => w.Status == WorkItemStatus.Done), Color = "success" },
+            new() { Status = "Blocked", Count = workItems.Count(w => w.Status == WorkItemStatus.Blocked), Color = "danger" }
+        },
 
                 ProjectsByStatus = new List<ProjectByStatusDto>
-                {
-                    new() { Status = "Active", Count = projects.Count(p => p.Status == ProjectStatus.Active), Color = "success" },
-                    new() { Status = "On Hold", Count = projects.Count(p => p.Status == ProjectStatus.OnHold), Color = "warning" },
-                    new() { Status = "Completed", Count = projects.Count(p => p.Status == ProjectStatus.Completed), Color = "info" },
-                    new() { Status = "Archived", Count = projects.Count(p => p.Status == ProjectStatus.Archived), Color = "secondary" },
-                    new() { Status = "Cancelled", Count = projects.Count(p => p.Status == ProjectStatus.Cancelled), Color = "danger" }
-                }
+        {
+            new() { Status = "Active", Count = projects.Count(p => p.Status == ProjectStatus.Active), Color = "success" },
+            new() { Status = "On Hold", Count = projects.Count(p => p.Status == ProjectStatus.OnHold), Color = "warning" },
+            new() { Status = "Completed", Count = projects.Count(p => p.Status == ProjectStatus.Completed), Color = "info" },
+            new() { Status = "Archived", Count = projects.Count(p => p.Status == ProjectStatus.Archived), Color = "secondary" },
+            new() { Status = "Cancelled", Count = projects.Count(p => p.Status == ProjectStatus.Cancelled), Color = "danger" }
+        }
             };
 
-            dashboard.RecentActivities = await GetRecentActivitiesAsync(userId, isAdmin, 10);
-            dashboard.ProjectProgress = await GetProjectProgressAsync(userId, isAdmin);
+            dashboard.RecentActivities = await GetRecentActivitiesAsync(userId ?? string.Empty, isAdmin, 10);
+            dashboard.ProjectProgress = await GetProjectProgressAsync(userId ?? string.Empty, isAdmin);
 
             return dashboard;
         }
