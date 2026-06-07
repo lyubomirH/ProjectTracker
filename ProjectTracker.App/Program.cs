@@ -5,6 +5,8 @@ using ProjectTracker.Data.Constants;
 using ProjectTracker.Data.Entities;
 using ProjectTracker.Data.Seed;
 using ProjectTracker.Services.Extensions;
+using ProjectTracker.Services.Interfaces;
+using ProjectTracker.Services.Services;
 using ProjectTracker.Web.Middlewares;
 
 namespace ProjectTracker.Web
@@ -42,6 +44,8 @@ namespace ProjectTracker.Web
             })
             .AddEntityFrameworkStores<ApplicationDbContext>()
             .AddDefaultTokenProviders();
+
+            builder.Services.AddScoped<ITeamService, TeamService>();
 
             // Configure cookie settings
             // Configure cookie settings - увери се, че е така

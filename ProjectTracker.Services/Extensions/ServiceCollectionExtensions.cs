@@ -8,7 +8,6 @@ namespace ProjectTracker.Services.Extensions
     {
         public static IServiceCollection AddServices(this IServiceCollection services)
         {
-            // Register services
             services.AddScoped<IProjectService, ProjectService>();
             services.AddScoped<IWorkItemService, WorkItemService>();
             services.AddScoped<ITeamService, TeamService>();

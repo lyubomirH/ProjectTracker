@@ -2,4 +2,5 @@
   <Project Path="ProjectTracker.App/ProjectTracker.App.csproj" />
   <Project Path="ProjectTracker.Data/ProjectTracker.Data.csproj" />
   <Project Path="ProjectTracker.Services/ProjectTracker.Services.csproj" />
+  <Project Path="ProjectTracker.Tests/ProjectTracker.Tests.csproj" Id="e8315ee2-5ee5-49ba-8c22-024dce6e5c94" />
 </Solution>

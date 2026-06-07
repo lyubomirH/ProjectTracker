@@ -1,11 +1,9 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using ProjectTracker.Services.DTOs;
 using ProjectTracker.Services.Interfaces;
 using ProjectTracker.Web.ViewModels.Projects;
 using ProjectTracker.Web.ViewModels.Shared;
-using ProjectTracker.Web.ViewModels.WorkItems;
 using System.Security.Claims;
 
 namespace ProjectTracker.Web.Controllers
@@ -28,8 +26,14 @@ namespace ProjectTracker.Web.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> Index(ProjectFilterViewModel filter)
+        public async Task<IActionResult> Index(ViewModels.Projects.ProjectFilterViewModel? filter = null)
         {
+            // Initialize filter if null
+            if (filter == null)
+            {
+                filter = new ViewModels.Projects.ProjectFilterViewModel();
+            }
+
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             var isAdmin = User.IsInRole("Admin");
 
@@ -67,15 +71,7 @@ namespace ProjectTracker.Web.Controllers
                     CompletedWorkItemsCount = p.CompletedWorkItemsCount,
                     CreatedAt = p.CreatedAt
                 }).ToList(),
-                Filter = new ViewModels.Projects.ProjectFilterViewModel
-                {
-                    SearchTerm = filter.SearchTerm,
-                    Status = filter.Status,
-                    SortBy = filter.SortBy,
-                    SortDescending = filter.SortDescending,
-                    Page = filter.Page,
-                    PageSize = filter.PageSize
-                },
+                Filter = filter,
                 Pagination = new PaginationViewModel
                 {
                     CurrentPage = result.Page,
