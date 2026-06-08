@@ -20,9 +20,9 @@ namespace ProjectTracker.Web.Controllers
             IWorkItemService workItemService,
             ITeamService teamService)
         {
-            _projectService = projectService;
-            _workItemService = workItemService;
-            _teamService = teamService;
+            _projectService = projectService ?? throw new ArgumentNullException(nameof(projectService));
+            _workItemService = workItemService ?? throw new ArgumentNullException(nameof(workItemService));
+            _teamService = teamService ?? throw new ArgumentNullException(nameof(teamService));
         }
 
         [HttpGet]
@@ -101,6 +101,12 @@ namespace ProjectTracker.Web.Controllers
         [Authorize(Roles = "Admin,ProjectManager")]
         public async Task<IActionResult> Create(ProjectFormViewModel model)
         {
+            // Проверка за null на _projectService
+            if (_projectService == null)
+            {
+                throw new InvalidOperationException("Project service is not initialized.");
+            }
+
             if (!ModelState.IsValid)
             {
                 return View(model);
@@ -108,8 +114,10 @@ namespace ProjectTracker.Web.Controllers
 
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
+            // Проверка за null на userId
             if (string.IsNullOrEmpty(userId))
             {
+                TempData["ErrorMessage"] = "User not authenticated.";
                 return RedirectToAction("Login", "Auth");
             }
 
@@ -122,7 +130,14 @@ namespace ProjectTracker.Web.Controllers
                 Status = model.Status
             };
 
+            // LINE 130 - провери дали тук е грешката
             var project = await _projectService.CreateProjectAsync(createDto, userId);
+
+            if (project == null)
+            {
+                TempData["ErrorMessage"] = "Failed to create project.";
+                return View(model);
+            }
 
             TempData["SuccessMessage"] = $"Project \"{project.Name}\" created successfully!";
             return RedirectToAction(nameof(Index));
@@ -279,15 +294,17 @@ namespace ProjectTracker.Web.Controllers
         [Authorize(Roles = "Admin,ProjectManager")]
         public async Task<IActionResult> Delete(int id)
         {
+            // Проверка за null на _projectService
+            if (_projectService == null)
+            {
+                throw new InvalidOperationException("Project service is not initialized.");
+            }
+
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             var isAdmin = User.IsInRole("Admin");
 
-            if (string.IsNullOrEmpty(userId))
-            {
-                return RedirectToAction("Login", "Auth");
-            }
-
-            var result = await _projectService.DeleteProjectAsync(id, userId, isAdmin);
+            // LINE 296 - провери дали тук е грешката
+            var result = await _projectService.DeleteProjectAsync(id, userId ?? string.Empty, isAdmin);
 
             if (!result)
             {
