@@ -101,12 +101,6 @@ namespace ProjectTracker.Web.Controllers
         [Authorize(Roles = "Admin,ProjectManager")]
         public async Task<IActionResult> Create(ProjectFormViewModel model)
         {
-            // Проверка за null на _projectService
-            if (_projectService == null)
-            {
-                throw new InvalidOperationException("Project service is not initialized.");
-            }
-
             if (!ModelState.IsValid)
             {
                 return View(model);
@@ -114,7 +108,6 @@ namespace ProjectTracker.Web.Controllers
 
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
-            // Проверка за null на userId
             if (string.IsNullOrEmpty(userId))
             {
                 TempData["ErrorMessage"] = "User not authenticated.";
@@ -130,7 +123,6 @@ namespace ProjectTracker.Web.Controllers
                 Status = model.Status
             };
 
-            // LINE 130 - провери дали тук е грешката
             var project = await _projectService.CreateProjectAsync(createDto, userId);
 
             if (project == null)
@@ -290,30 +282,24 @@ namespace ProjectTracker.Web.Controllers
         }
 
         [HttpPost]
-        [ValidateAntiForgeryToken]
-        [Authorize(Roles = "Admin,ProjectManager")]
-        public async Task<IActionResult> Delete(int id)
+    [ValidateAntiForgeryToken]
+    [Authorize(Roles = "Admin,ProjectManager")]
+    public async Task<IActionResult> Delete(int id)
+    {
+   
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var isAdmin = User.IsInRole("Admin");
+    
+        var result = await _projectService.DeleteProjectAsync(id, userId ?? string.Empty, isAdmin);
+    
+        if (!result)
         {
-            // Проверка за null на _projectService
-            if (_projectService == null)
-            {
-                throw new InvalidOperationException("Project service is not initialized.");
-            }
-
-            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            var isAdmin = User.IsInRole("Admin");
-
-            // LINE 296 - провери дали тук е грешката
-            var result = await _projectService.DeleteProjectAsync(id, userId ?? string.Empty, isAdmin);
-
-            if (!result)
-            {
-                return RedirectToAction("Error404", "Home");
-            }
-
-            TempData["SuccessMessage"] = "Project deleted successfully!";
-            return RedirectToAction(nameof(Index));
+            return RedirectToAction("Error404", "Home");
         }
+    
+        TempData["SuccessMessage"] = "Project deleted successfully!";
+        return RedirectToAction(nameof(Index));
+    }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
