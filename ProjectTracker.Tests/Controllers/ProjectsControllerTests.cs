@@ -2,10 +2,8 @@
 using Microsoft.AspNetCore.Mvc;
 using Moq;
 using NUnit.Framework;
-using ProjectTracker.Services.DTOs;
 using ProjectTracker.Services.Interfaces;
 using ProjectTracker.Web.Controllers;
-using ProjectTracker.Web.ViewModels.Projects;
 using System.Security.Claims;
 
 namespace ProjectTracker.Tests.Controllers
