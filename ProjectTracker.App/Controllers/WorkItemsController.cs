@@ -33,7 +33,6 @@ namespace ProjectTracker.Web.Controllers
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             var isAdmin = User.IsInRole("Admin");
 
-            // Fixed page size for work items
             pageSize = 10;
 
             var filterDto = new WorkItemFilterDto
@@ -53,7 +52,6 @@ namespace ProjectTracker.Web.Controllers
 
             var result = await _projectService.GetFilteredWorkItemsAsync(filterDto);
 
-            // Get projects for dropdown - ONLY projects user is part of
             var projects = await _projectService.GetUserProjectsForDropdownAsync(userId ?? string.Empty, isAdmin);
 
             var viewModel = new WorkItemIndexViewModel
@@ -112,7 +110,6 @@ namespace ProjectTracker.Web.Controllers
                 return RedirectToAction("Error404", "Home");
             }
 
-            // Get team members for assignee dropdown
             var teamMembers = await _teamService.GetTeamMembersForDropdownAsync(projectId);
 
             ViewBag.TeamMembers = teamMembers;
@@ -220,7 +217,6 @@ namespace ProjectTracker.Web.Controllers
                 return RedirectToAction("Error404", "Home");
             }
 
-            // Get team members for assignee dropdown
             var teamMembers = await _teamService.GetTeamMembersForDropdownAsync(workItem.ProjectId);
 
             ViewBag.TeamMembers = teamMembers;

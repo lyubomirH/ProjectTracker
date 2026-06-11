@@ -7,7 +7,7 @@ using ProjectTracker.Services.DTOs;
 using ProjectTracker.Services.Services;
 using ProjectTracker.Tests.Helpers;
 
-namespace ProjectTracker.Tests.Services  // Правилен namespace
+namespace ProjectTracker.Tests.Services  
 {
     [TestFixture]
     public class WorkItemServiceTests

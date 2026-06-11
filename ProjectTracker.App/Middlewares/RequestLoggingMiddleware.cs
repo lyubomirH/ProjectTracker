@@ -17,7 +17,6 @@ namespace ProjectTracker.Web.Middlewares
         {
             var stopwatch = Stopwatch.StartNew();
 
-            // Log request
             _logger.LogInformation("Request: {Method} {Path} started at {Time}",
                 context.Request.Method,
                 context.Request.Path,
@@ -29,7 +28,6 @@ namespace ProjectTracker.Web.Middlewares
 
                 stopwatch.Stop();
 
-                // Log response
                 _logger.LogInformation("Request: {Method} {Path} completed with {StatusCode} in {Elapsed}ms",
                     context.Request.Method,
                     context.Request.Path,
