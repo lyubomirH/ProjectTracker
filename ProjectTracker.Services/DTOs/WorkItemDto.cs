@@ -20,7 +20,6 @@
         public int? ActualHours { get; set; }
         public int CommentsCount { get; set; }
 
-        // Helper properties
         public bool IsOverdue => DueDate.HasValue && DueDate.Value.Date < DateTime.UtcNow.Date && Status != "Done";
         public bool IsCompleted => Status == "Done";
     }

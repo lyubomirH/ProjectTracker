@@ -77,7 +77,6 @@ namespace ProjectTracker.Services.Services
                 return null;
             }
 
-            // Check access
             var isOwner = workItem.Project.OwnerId == userId;
             var isTeamMember = await _context.TeamMembers
                 .AnyAsync(tm => tm.ProjectId == workItem.ProjectId && tm.UserId == userId && tm.IsActive);
@@ -159,7 +158,6 @@ namespace ProjectTracker.Services.Services
                 return null;
             }
 
-            // Check permission
             var isOwner = workItem.Project.OwnerId == userId;
             var isTeamMember = await _context.TeamMembers
                 .AnyAsync(tm => tm.ProjectId == workItem.ProjectId && tm.UserId == userId && tm.IsActive);
@@ -181,7 +179,6 @@ namespace ProjectTracker.Services.Services
             workItem.EstimatedHours = workItemDto.EstimatedHours;
             workItem.ActualHours = workItemDto.ActualHours;
 
-            // Update completion date if status changed to/from Done
             if (oldStatus != WorkItemStatus.Done && newStatus == WorkItemStatus.Done)
             {
                 workItem.CompletedAt = DateTime.UtcNow;
@@ -207,7 +204,6 @@ namespace ProjectTracker.Services.Services
                 return false;
             }
 
-            // Check permission - only Admin or Project Owner can delete
             var isOwner = workItem.Project.OwnerId == userId;
 
             if (!isAdmin && !isOwner)
@@ -232,7 +228,6 @@ namespace ProjectTracker.Services.Services
                 return false;
             }
 
-            // Check permission
             var isOwner = workItem.Project.OwnerId == userId;
             var isTeamMember = await _context.TeamMembers
                 .AnyAsync(tm => tm.ProjectId == workItem.ProjectId && tm.UserId == userId && tm.IsActive);
@@ -247,7 +242,6 @@ namespace ProjectTracker.Services.Services
 
             workItem.Status = newStatus;
 
-            // Update completion date if status changed to/from Done
             if (oldStatus != WorkItemStatus.Done && newStatus == WorkItemStatus.Done)
             {
                 workItem.CompletedAt = DateTime.UtcNow;
@@ -318,7 +312,6 @@ namespace ProjectTracker.Services.Services
                 return false;
             }
 
-            // Check permission
             var isOwner = workItem.Project.OwnerId == userId;
             var isTeamMember = await _context.TeamMembers
                 .AnyAsync(tm => tm.ProjectId == workItem.ProjectId && tm.UserId == userId && tm.IsActive);
@@ -328,7 +321,6 @@ namespace ProjectTracker.Services.Services
                 return false;
             }
 
-            // Verify assignee is a team member
             var isAssigneeValid = await _context.TeamMembers
                 .AnyAsync(tm => tm.ProjectId == workItem.ProjectId && tm.UserId == assigneeId && tm.IsActive);
 
@@ -436,7 +428,6 @@ namespace ProjectTracker.Services.Services
                                          (w.Description != null && w.Description.Contains(filter.SearchTerm)));
             }
 
-            // Сортиране
             query = (filter.SortBy?.ToLower()) switch
             {
                 "title" => filter.SortDescending ? query.OrderByDescending(w => w.Title) : query.OrderBy(w => w.Title),

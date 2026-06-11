@@ -16,7 +16,6 @@
         public int CompletedWorkItemsCount { get; set; }
         public double CompletionPercentage { get; set; }
 
-        // Navigation properties
         public List<TeamMemberDto> TeamMembers { get; set; } = new();
         public List<WorkItemSummaryDto> WorkItems { get; set; } = new();
     }

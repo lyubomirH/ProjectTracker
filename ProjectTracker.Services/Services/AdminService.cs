@@ -154,7 +154,6 @@ namespace ProjectTracker.Services.Services
             var updateResult = await _userManager.UpdateAsync(user);
             if (!updateResult.Succeeded) return false;
 
-            // Update roles
             var currentRoles = await _userManager.GetRolesAsync(user);
             var rolesToAdd = userDto.SelectedRoles.Except(currentRoles).ToList();
             var rolesToRemove = currentRoles.Except(userDto.SelectedRoles).ToList();
@@ -289,10 +288,9 @@ namespace ProjectTracker.Services.Services
         public async Task<bool> DeleteRoleAsync(string roleId)
         {
             var role = await _roleManager.FindByIdAsync(roleId);
-            if (role == null) return false;
+            if (role == null) { return false; }
 
-            // Don't allow deleting default roles
-            if (RoleNames.AllRoles.Contains(role.Name)) return false;
+            if (RoleNames.AllRoles.Contains(role.Name)) { return false; }
 
             var result = await _roleManager.DeleteAsync(role);
             return result.Succeeded;

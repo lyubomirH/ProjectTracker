@@ -24,7 +24,6 @@ namespace ProjectTracker.Tests.Controllers
             _mockWorkItemService = new Mock<IWorkItemService>();
             _mockTeamService = new Mock<ITeamService>();
 
-            // Увери се, че моковете не са null
             Assert.That(_mockProjectService, Is.Not.Null);
             Assert.That(_mockWorkItemService, Is.Not.Null);
             Assert.That(_mockTeamService, Is.Not.Null);

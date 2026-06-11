@@ -14,7 +14,6 @@ namespace ProjectTracker.Services.Services
         private readonly ApplicationDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
 
-        // Constructor without IServiceProvider
         public TeamService(ApplicationDbContext context, UserManager<ApplicationUser> userManager)
         {
             _context = context;
@@ -22,7 +21,6 @@ namespace ProjectTracker.Services.Services
         }
         
 
-        // All other methods remain the same
         public async Task<IEnumerable<TeamMemberDto>> GetTeamMembersAsync(int projectId)
         {
             var members = await _context.TeamMembers
@@ -34,7 +32,6 @@ namespace ProjectTracker.Services.Services
 
             var result = new List<TeamMemberDto>();
 
-            // Add project owner if not in team members
             if (project?.Owner != null)
             {
                 var ownerExists = members.Any(m => m.UserId == project.OwnerId);
@@ -322,7 +319,6 @@ namespace ProjectTracker.Services.Services
 
             if (project == null) return members;
 
-            // Add project owner
             if (project.Owner != null)
             {
                 members.Add(new TeamMemberSimpleDto
@@ -333,7 +329,6 @@ namespace ProjectTracker.Services.Services
                 });
             }
 
-            // Add team members
             var teamMembers = await _context.TeamMembers
                 .Include(tm => tm.User)
                 .Where(tm => tm.ProjectId == projectId && tm.IsActive)

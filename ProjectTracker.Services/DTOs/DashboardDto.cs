@@ -19,10 +19,8 @@
             ? Math.Round((double)CompletedWorkItems / TotalWorkItems * 100, 1)
             : 0;
 
-        // Промени от List<RecentActivityDto> на IEnumerable<RecentActivityDto>
         public IEnumerable<RecentActivityDto> RecentActivities { get; set; } = new List<RecentActivityDto>();
 
-        // Промени от List<ProjectProgressDto> на IEnumerable<ProjectProgressDto>
         public IEnumerable<ProjectProgressDto> ProjectProgress { get; set; } = new List<ProjectProgressDto>();
 
         public List<WorkItemByStatusDto> WorkItemsByStatus { get; set; } = new();

@@ -24,7 +24,6 @@ namespace ProjectTracker.Services.Services
                 .Include(p => p.WorkItems)
                 .Where(p => !p.IsDeleted);
 
-            // Non-admin users see only projects they are part of
             if (!isAdmin && !string.IsNullOrEmpty(userId))
             {
                 query = query.Where(p =>
@@ -123,7 +122,6 @@ namespace ProjectTracker.Services.Services
             _context.Projects.Add(project);
             await _context.SaveChangesAsync();
 
-            // Add owner as team member with ProjectManager role
             var teamMember = new TeamMember
             {
                 ProjectId = project.Id,
@@ -163,7 +161,6 @@ namespace ProjectTracker.Services.Services
                 return null;
             }
 
-            // Check permission - only Admin or Project Owner can update
             if (!isAdmin && project.OwnerId != userId)
             {
                 return null;
@@ -190,7 +187,6 @@ namespace ProjectTracker.Services.Services
                 return false;
             }
 
-            // Check permission - only Admin or Project Owner can delete
             if (!isAdmin && project.OwnerId != userId)
             {
                 return false;
@@ -232,7 +228,6 @@ namespace ProjectTracker.Services.Services
                 .Include(p => p.WorkItems)
                 .Where(p => !p.IsDeleted);
 
-            // Filter by user permissions - show only projects user is part of
             if (!filter.IsAdmin && !string.IsNullOrEmpty(filter.UserId))
             {
                 query = query.Where(p =>
@@ -240,21 +235,18 @@ namespace ProjectTracker.Services.Services
                     p.TeamMembers.Any(tm => tm.UserId == filter.UserId));
             }
 
-            // Filter by status
             if (!string.IsNullOrEmpty(filter.Status) && filter.Status != "All")
             {
                 var status = Enum.Parse<ProjectStatus>(filter.Status);
                 query = query.Where(p => p.Status == status);
             }
 
-            // Search by name
             if (!string.IsNullOrEmpty(filter.SearchTerm))
             {
                 query = query.Where(p => p.Name.Contains(filter.SearchTerm) ||
                                          (p.Description != null && p.Description.Contains(filter.SearchTerm)));
             }
 
-            // Sorting
             query = (filter.SortBy?.ToLower()) switch
             {
                 "name" => filter.SortDescending ? query.OrderByDescending(p => p.Name) : query.OrderBy(p => p.Name),
@@ -264,7 +256,6 @@ namespace ProjectTracker.Services.Services
                 _ => filter.SortDescending ? query.OrderByDescending(p => p.CreatedAt) : query.OrderBy(p => p.CreatedAt)
             };
 
-            // Pagination
             var totalCount = await query.CountAsync();
             var items = await query
                 .Skip((filter.Page - 1) * filter.PageSize)
@@ -394,7 +385,6 @@ namespace ProjectTracker.Services.Services
             var query = _context.Projects
                 .Where(p => !p.IsDeleted);
 
-            // Filter only projects user is part of
             if (!isAdmin && !string.IsNullOrEmpty(userId))
             {
                 query = query.Where(p =>

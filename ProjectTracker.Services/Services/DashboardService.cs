@@ -18,7 +18,6 @@ namespace ProjectTracker.Services.Services
 
         public async Task<DashboardDto> GetDashboardDataAsync(string userId, bool isAdmin)
         {
-            // Projects query - only projects user is part of
             var projectsQuery = _context.Projects
                 .Include(p => p.WorkItems)
                 .Where(p => !p.IsDeleted);
@@ -32,7 +31,6 @@ namespace ProjectTracker.Services.Services
 
             var projects = await projectsQuery.ToListAsync();
 
-            // WorkItems query - only work items from user's projects
             var workItemsQuery = _context.WorkItems
                 .Include(w => w.Project)
                 .Where(w => !w.Project.IsDeleted);
@@ -48,7 +46,6 @@ namespace ProjectTracker.Services.Services
 
             var workItems = await workItemsQuery.ToListAsync();
 
-            // Team members count - only from user's projects
             var teamMembersQuery = _context.TeamMembers
                 .Include(tm => tm.Project)
                 .Where(tm => tm.IsActive);
@@ -107,7 +104,6 @@ namespace ProjectTracker.Services.Services
         {
             var activities = new List<RecentActivityDto>();
 
-            // Get recent projects
             var projectsQuery = _context.Projects
                 .Include(p => p.Owner)
                 .Where(p => !p.IsDeleted);
@@ -139,7 +135,6 @@ namespace ProjectTracker.Services.Services
 
             activities.AddRange(recentProjects);
 
-            // Get recent work items
             var workItemsQuery = _context.WorkItems
                 .Include(w => w.Project)
                 .Include(w => w.CreatedBy)
@@ -174,7 +169,6 @@ namespace ProjectTracker.Services.Services
 
             activities.AddRange(recentWorkItems);
 
-            // Get completed work items
             var completedWorkItems = await workItemsQuery
                 .Where(w => w.Status == WorkItemStatus.Done && w.CompletedAt.HasValue)
                 .OrderByDescending(w => w.CompletedAt)
@@ -196,7 +190,6 @@ namespace ProjectTracker.Services.Services
 
             activities.AddRange(completedWorkItems);
 
-            // Sort by date and take top count
             return activities
                 .OrderByDescending(a => a.CreatedAt)
                 .Take(count)
