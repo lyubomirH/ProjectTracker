@@ -162,6 +162,13 @@ namespace ProjectTracker.Services.Services
             {
                 await _userManager.RemoveFromRolesAsync(user, rolesToRemove);
             }
+
+            var updatedRoles = await _userManager.GetRolesAsync(user);
+            if (!updatedRoles.Any())
+            {
+                await _userManager.AddToRoleAsync(user, RoleNames.Viewer);
+            }
+
             if (rolesToAdd.Any())
             {
                 await _userManager.AddToRolesAsync(user, rolesToAdd);

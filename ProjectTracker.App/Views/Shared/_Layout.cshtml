@@ -144,11 +144,11 @@
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav me-auto">
-                    <li class="nav-item">
+                    @* <li class="nav-item">
                         <a class="nav-link" asp-controller="Home" asp-action="Index">
                             <i class="fas fa-home"></i> Home
                         </a>
-                    </li>
+                    </li> *@
 
                     @if (User.Identity?.IsAuthenticated == true)
                     {
