@@ -77,8 +77,8 @@ namespace ProjectTracker.Services.Services
 
             if (!string.IsNullOrEmpty(searchTerm))
             {
-                query = query.Where(u => u.Email != null && (u.Email.Contains(searchTerm) ||
-                                         u.FullName.Contains(searchTerm)));
+                query = query.Where(u => u.Email != null &&
+                    (u.Email.Contains(searchTerm) || u.FullName.Contains(searchTerm)));
             }
 
             var totalCount = await query.CountAsync();
@@ -99,7 +99,7 @@ namespace ProjectTracker.Services.Services
                     FirstName = user.FirstName,
                     LastName = user.LastName,
                     CreatedAt = user.CreatedAt,
-                    IsActive = user.IsActive,
+                    LastLoginAt = user.LastLoginAt,  // Added
                     Roles = roles.ToList(),
                     Department = user.Department,
                     JobTitle = user.JobTitle,
@@ -131,7 +131,6 @@ namespace ProjectTracker.Services.Services
                 FirstName = user.FirstName,
                 LastName = user.LastName,
                 CreatedAt = user.CreatedAt,
-                IsActive = user.IsActive,
                 Roles = roles.ToList(),
                 Department = user.Department,
                 JobTitle = user.JobTitle,
@@ -146,7 +145,6 @@ namespace ProjectTracker.Services.Services
 
             user.FirstName = userDto.FirstName;
             user.LastName = userDto.LastName;
-            user.IsActive = userDto.IsActive;
             user.Department = userDto.Department;
             user.JobTitle = userDto.JobTitle;
             user.Bio = userDto.Bio;

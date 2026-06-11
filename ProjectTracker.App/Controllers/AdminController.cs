@@ -67,7 +67,6 @@ namespace ProjectTracker.Web.Controllers
                     FirstName = u.FirstName,
                     LastName = u.LastName,
                     CreatedAt = u.CreatedAt,
-                    IsActive = u.IsActive,
                     Roles = u.Roles,
                     Department = u.Department,
                     JobTitle = u.JobTitle
@@ -107,7 +106,6 @@ namespace ProjectTracker.Web.Controllers
                 Email = user.Email,
                 FirstName = user.FirstName,
                 LastName = user.LastName,
-                IsActive = user.IsActive,
                 Department = user.Department,
                 JobTitle = user.JobTitle,
                 Bio = user.Bio,
@@ -135,7 +133,6 @@ namespace ProjectTracker.Web.Controllers
                 Email = model.Email,
                 FirstName = model.FirstName,
                 LastName = model.LastName,
-                IsActive = model.IsActive,
                 Department = model.Department,
                 JobTitle = model.JobTitle,
                 Bio = model.Bio,

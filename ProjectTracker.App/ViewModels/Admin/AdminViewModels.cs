@@ -41,10 +41,12 @@ namespace ProjectTracker.Web.ViewModels.Admin
         public string FirstName { get; set; } = string.Empty;
         public string LastName { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; }
-        public bool IsActive { get; set; }
+        public DateTime? LastLoginAt { get; set; }
         public List<string> Roles { get; set; } = new();
         public string? Department { get; set; }
         public string? JobTitle { get; set; }
+
+        public string LastLoginDisplay => LastLoginAt?.ToString("yyyy-MM-dd HH:mm") ?? "Never";
     }
 
     public class UserListViewModel
@@ -69,9 +71,6 @@ namespace ProjectTracker.Web.ViewModels.Admin
         [Required]
         [Display(Name = "Last Name")]
         public string LastName { get; set; } = string.Empty;
-
-        [Display(Name = "Is Active")]
-        public bool IsActive { get; set; } = true;
 
         [Display(Name = "Department")]
         public string? Department { get; set; }

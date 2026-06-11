@@ -11,6 +11,14 @@
                 <h4 class="mb-0"><i class="fas fa-user-edit"></i> Edit User: @Model.FullName</h4>
             </div>
             <div class="card-body">
+                @if (TempData["WarningMessage"] != null)
+                {
+                    <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                        <i class="fas fa-exclamation-triangle"></i> @TempData["WarningMessage"]
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                }
+
                 <form asp-action="EditUser" method="post">
                     @Html.AntiForgeryToken()
                     <input type="hidden" asp-for="Id" />
@@ -63,30 +71,24 @@
                         <span asp-validation-for="Bio" class="text-danger"></span>
                     </div>
 
-                    <div class="form-check mb-3">
-                        <input asp-for="IsActive" class="form-check-input" />
-                        <label asp-for="IsActive" class="form-check-label fw-bold"></label>
-                    </div>
+                    <!-- IsActive checkbox REMOVED -->
 
                     <div class="mb-3">
                         <label class="form-label fw-bold">Roles</label>
                         <div class="border rounded p-3" style="max-height: 200px; overflow-y: auto;">
-                            @if (Model.AvailableRoles != null && Model.AvailableRoles.Any())
+                            @foreach (var role in Model.AvailableRoles)
                             {
-                                @foreach (var role in Model.AvailableRoles)
-                                {
-                                    <div class="form-check">
-                                        <input type="checkbox" name="SelectedRoles" value="@role" class="form-check-input"
-                                               id="role_@role" @(Model.CurrentRoles != null && Model.CurrentRoles.Contains(role) ? "checked" : "") />
-                                        <label class="form-check-label" for="role_@role">@role</label>
-                                    </div>
-                                }
-                            }
-                            else
-                            {
-                                <p class="text-muted mb-0">No roles available.</p>
+                                <div class="form-check">
+                                    <input type="checkbox" name="SelectedRoles" value="@role" class="form-check-input"
+                                           id="role_@role" @(Model.CurrentRoles.Contains(role) ? "checked" : "") />
+                                    <label class="form-check-label" for="role_@role">@role</label>
+                                </div>
                             }
                         </div>
+                        <small class="text-muted mt-2 d-block">
+                            <i class="fas fa-info-circle"></i>
+                            If you remove all roles, the user will automatically be assigned the "Viewer" role.
+                        </small>
                     </div>
 
                     <hr />
@@ -106,4 +108,20 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+
+    <script>
+        // Check if all roles are unchecked
+        const roleCheckboxes = document.querySelectorAll('input[name="SelectedRoles"]');
+        const form = document.querySelector('form');
+
+        form.addEventListener('submit', function(e) {
+            const checkedRoles = document.querySelectorAll('input[name="SelectedRoles"]:checked');
+
+            if (checkedRoles.length === 0) {
+                if (!confirm('You are removing all roles. The user will automatically be assigned the "Viewer" role. Continue?')) {
+                    e.preventDefault();
+                }
+            }
+        });
+    </script>
 }

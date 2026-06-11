@@ -15,11 +15,11 @@
 <div class="card mb-4">
     <div class="card-body">
         <form method="get" class="row g-3">
-            <div class="col-md-8">
+            <div class="col-md-10">
                 <input type="text" name="searchTerm" class="form-control"
                        placeholder="Search by name or email..." value="@Model.SearchTerm" />
             </div>
-            <div class="col-md-4">
+            <div class="col-md-2">
                 <button type="submit" class="btn btn-primary w-100">
                     <i class="fas fa-search"></i> Search
                 </button>
@@ -38,8 +38,8 @@
                         <th>Email</th>
                         <th>Department</th>
                         <th>Roles</th>
+                        <th>Last Login</th>
                         <th>Joined</th>
-                        <th>Status</th>
                         <th class="text-center">Actions</th>
                     </tr>
                 </thead>
@@ -47,31 +47,42 @@
                     @foreach (var user in Model.Users)
                     {
                         <tr>
-                            <td>@user.FullName</td>
-                            <td>@user.Email</td>
-                            <td>@(user.Department ?? "-")</td>
-                            <td>
+                            <td class="align-middle">
+                                <div class="d-flex align-items-center">
+                                    <div class="rounded-circle bg-primary bg-opacity-10 p-2 me-2">
+                                        <i class="fas fa-user text-primary"></i>
+                                    </div>
+                                    <div>
+                                        <strong>@user.FullName</strong>
+                                        <br />
+                                        <small class="text-muted">@(user.JobTitle ?? "No title")</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="align-middle">@user.Email</td>
+                            <td class="align-middle">@(user.Department ?? "-")</td>
+                            <td class="align-middle">
                                 @foreach (var role in user.Roles)
                                 {
                                     <span class="badge bg-primary me-1">@role</span>
                                 }
                             </td>
-                            <td>@user.CreatedAt.ToString("yyyy-MM-dd")</td>
-                            <td>
-                                @if (user.IsActive)
-                                {
-                                    <span class="badge bg-success">Active</span>
-                                }
-                                else
-                                {
-                                    <span class="badge bg-danger">Inactive</span>
-                                }
+                            <td class="align-middle">
+                                <small class="text-muted">
+                                    <i class="fas fa-clock"></i> @user.LastLoginDisplay
+                                </small>
                             </td>
-                            <td class="text-center">
+                            <td class="align-middle">
+                                <small class="text-muted">
+                                    <i class="fas fa-calendar"></i> @user.CreatedAt.ToString("yyyy-MM-dd")
+                                </small>
+                            </td>
+                            <td class="text-center align-middle">
                                 <a asp-action="EditUser" asp-route-id="@user.Id" class="btn btn-sm btn-warning">
                                     <i class="fas fa-edit"></i> Edit
                                 </a>
-                                <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal" data-user-id="@user.Id" data-user-name="@user.FullName">
+                                <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal"
+                                        data-bs-target="#deleteModal" data-user-id="@user.Id" data-user-name="@user.FullName">
                                     <i class="fas fa-trash"></i> Delete
                                 </button>
                             </td>
@@ -125,7 +136,7 @@
             </div>
             <div class="modal-body">
                 <p>Are you sure you want to delete user <strong id="deleteUserName"></strong>?</p>
-                <p class="text-muted">This action cannot be undone.</p>
+                <p class="text-danger">⚠️ This action cannot be undone!</p>
             </div>
             <div class="modal-footer">
                 <form asp-action="DeleteUser" method="post">

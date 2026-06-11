@@ -44,6 +44,14 @@ namespace ProjectTracker.Web.Controllers
                 return View(model);
             }
 
+            var user = await _userManager.FindByEmailAsync(model.Email);
+
+            if (user != null)
+            {
+                user.LastLoginAt = DateTime.UtcNow;
+                await _userManager.UpdateAsync(user);
+            }
+
             var result = await _signInManager.PasswordSignInAsync(
                 model.Email, model.Password, model.RememberMe, lockoutOnFailure: false);
 
@@ -53,19 +61,7 @@ namespace ProjectTracker.Web.Controllers
                 return RedirectToAction("Index", "Home");
             }
 
-            if (result.IsLockedOut)
-            {
-                ModelState.AddModelError(string.Empty, "Account locked out. Please try again later.");
-            }
-            else if (result.IsNotAllowed)
-            {
-                ModelState.AddModelError(string.Empty, "Login not allowed. Please confirm your email.");
-            }
-            else
-            {
-                ModelState.AddModelError(string.Empty, "Invalid login attempt.");
-            }
-
+            ModelState.AddModelError(string.Empty, "Invalid login attempt.");
             return View(model);
         }
 
@@ -84,7 +80,6 @@ namespace ProjectTracker.Web.Controllers
                 return View(model);
             }
 
-            // Check if user already exists
             var existingUser = await _userManager.FindByEmailAsync(model.Email);
             if (existingUser != null)
             {
@@ -100,14 +95,13 @@ namespace ProjectTracker.Web.Controllers
                 LastName = model.LastName,
                 CreatedAt = DateTime.UtcNow,
                 IsActive = true,
-                EmailConfirmed = true // Auto-confirm for development
+                EmailConfirmed = true
             };
 
             var result = await _userManager.CreateAsync(user, model.Password);
 
             if (result.Succeeded)
             {
-                // Ensure role exists
                 if (!await _roleManager.RoleExistsAsync(model.Role))
                 {
                     await _roleManager.CreateAsync(new IdentityRole(model.Role));
@@ -115,7 +109,6 @@ namespace ProjectTracker.Web.Controllers
 
                 await _userManager.AddToRoleAsync(user, model.Role);
 
-                // Sign in manually
                 await _signInManager.SignInAsync(user, isPersistent: false);
 
                 TempData["SuccessMessage"] = "Account created successfully! Welcome!";
