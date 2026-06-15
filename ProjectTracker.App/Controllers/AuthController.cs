@@ -4,6 +4,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ProjectTracker.Data.Constants;
 using ProjectTracker.Data.Entities;
+using ProjectTracker.Services.Interfaces;
+using ProjectTracker.Services.Services;
 using ProjectTracker.Web.ViewModels.Auth;
 using System.Security.Claims;
 
@@ -14,15 +16,18 @@ namespace ProjectTracker.Web.Controllers
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly SignInManager<ApplicationUser> _signInManager;
         private readonly RoleManager<IdentityRole> _roleManager;
+        private readonly IAdminService _adminService;
 
         public AuthController(
             UserManager<ApplicationUser> userManager,
             SignInManager<ApplicationUser> signInManager,
-            RoleManager<IdentityRole> roleManager)
+            RoleManager<IdentityRole> roleManager,
+            IAdminService adminService)
         {
             _userManager = userManager;
             _signInManager = signInManager;
             _roleManager = roleManager;
+            _adminService = adminService;
         }
 
         [HttpGet]
@@ -94,7 +99,7 @@ namespace ProjectTracker.Web.Controllers
                 FirstName = model.FirstName,
                 LastName = model.LastName,
                 CreatedAt = DateTime.UtcNow,
-                IsActive = true,
+                LastLoginAt = DateTime.UtcNow,  // Set initial login time
                 EmailConfirmed = true
             };
 

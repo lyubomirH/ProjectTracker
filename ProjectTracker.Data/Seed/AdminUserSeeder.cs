@@ -25,7 +25,7 @@ namespace ProjectTracker.Data.Seed
                     FirstName = "System",
                     LastName = "Administrator",
                     EmailConfirmed = true,
-                    IsActive = true
+                    CreatedAt = DateTime.UtcNow
                 };
 
                 var result = await userManager.CreateAsync(adminUser, adminPassword);

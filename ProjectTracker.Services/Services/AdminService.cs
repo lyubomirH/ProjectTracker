@@ -28,10 +28,10 @@ namespace ProjectTracker.Services.Services
         public async Task<AdminStatisticsDto> GetStatisticsAsync()
         {
             var totalUsers = await _userManager.Users.CountAsync();
-            var activeUsers = await _userManager.Users.CountAsync(u => u.IsActive);
             var totalProjects = await _context.Projects.CountAsync(p => !p.IsDeleted);
             var totalWorkItems = await _context.WorkItems.CountAsync();
             var totalComments = await _context.Comments.CountAsync();
+            var activeUsers = await _userManager.Users.CountAsync();
 
             var recentProjects = await _context.Projects
                 .Include(p => p.Owner)
@@ -56,16 +56,16 @@ namespace ProjectTracker.Services.Services
                     Email = u.Email ?? string.Empty,
                     FullName = u.FullName,
                     CreatedAt = u.CreatedAt,
-                    IsActive = u.IsActive
+                    LastLoginAt = u.LastLoginAt
                 }).ToListAsync();
 
             return new AdminStatisticsDto
             {
                 TotalUsers = totalUsers,
-                ActiveUsers = activeUsers,
                 TotalProjects = totalProjects,
                 TotalWorkItems = totalWorkItems,
                 TotalComments = totalComments,
+                ActiveUsers = activeUsers,
                 RecentProjects = recentProjects,
                 RecentUsers = recentUsers
             };
@@ -99,7 +99,7 @@ namespace ProjectTracker.Services.Services
                     FirstName = user.FirstName,
                     LastName = user.LastName,
                     CreatedAt = user.CreatedAt,
-                    LastLoginAt = user.LastLoginAt,  // Added
+                    LastLoginAt = user.LastLoginAt,
                     Roles = roles.ToList(),
                     Department = user.Department,
                     JobTitle = user.JobTitle,
@@ -131,6 +131,7 @@ namespace ProjectTracker.Services.Services
                 FirstName = user.FirstName,
                 LastName = user.LastName,
                 CreatedAt = user.CreatedAt,
+                LastLoginAt = user.LastLoginAt,
                 Roles = roles.ToList(),
                 Department = user.Department,
                 JobTitle = user.JobTitle,
@@ -298,6 +299,16 @@ namespace ProjectTracker.Services.Services
             if (RoleNames.AllRoles.Contains(role.Name)) { return false; }
 
             var result = await _roleManager.DeleteAsync(role);
+            return result.Succeeded;
+        }
+
+        public async Task<bool> UpdateLastLoginAsync(string userId)
+        {
+            var user = await _userManager.FindByIdAsync(userId);
+            if (user == null) return false;
+
+            user.LastLoginAt = DateTime.UtcNow;
+            var result = await _userManager.UpdateAsync(user);
             return result.Succeeded;
         }
     }

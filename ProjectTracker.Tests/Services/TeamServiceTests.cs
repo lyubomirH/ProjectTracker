@@ -59,7 +59,6 @@ namespace ProjectTracker.Tests.Services
                 Email = "test@test.com",
                 FirstName = "Test",
                 LastName = "User",
-                IsActive = true,
                 CreatedAt = DateTime.UtcNow
             };
 
@@ -110,7 +109,6 @@ namespace ProjectTracker.Tests.Services
                 Email = "member@test.com",
                 FirstName = "Member",
                 LastName = "User",
-                IsActive = true,
                 CreatedAt = DateTime.UtcNow
             };
 
@@ -160,7 +158,6 @@ namespace ProjectTracker.Tests.Services
                 Email = "member@test.com",
                 FirstName = "Member",
                 LastName = "User",
-                IsActive = true,
                 CreatedAt = DateTime.UtcNow
             };
 
@@ -207,7 +204,6 @@ namespace ProjectTracker.Tests.Services
                 Email = "member@test.com",
                 FirstName = "Member",
                 LastName = "User",
-                IsActive = true,
                 CreatedAt = DateTime.UtcNow
             };
 
@@ -262,7 +258,6 @@ namespace ProjectTracker.Tests.Services
                 Email = "member@test.com",
                 FirstName = "Member",
                 LastName = "User",
-                IsActive = true,
                 CreatedAt = DateTime.UtcNow
             };
 
@@ -312,7 +307,6 @@ namespace ProjectTracker.Tests.Services
                 Email = "member@test.com",
                 FirstName = "Member",
                 LastName = "User",
-                IsActive = true,
                 CreatedAt = DateTime.UtcNow
             };
 
@@ -361,7 +355,6 @@ namespace ProjectTracker.Tests.Services
                 Email = "pm@test.com",
                 FirstName = "PM",
                 LastName = "User",
-                IsActive = true,
                 CreatedAt = DateTime.UtcNow
             };
 
@@ -396,7 +389,6 @@ namespace ProjectTracker.Tests.Services
                 Email = "dev@test.com",
                 FirstName = "Dev",
                 LastName = "User",
-                IsActive = true,
                 CreatedAt = DateTime.UtcNow
             };
 
@@ -431,7 +423,6 @@ namespace ProjectTracker.Tests.Services
                 Email = "existing@test.com",
                 FirstName = "Existing",
                 LastName = "User",
-                IsActive = true,
                 CreatedAt = DateTime.UtcNow
             };
 
@@ -445,7 +436,6 @@ namespace ProjectTracker.Tests.Services
                 Email = "new@test.com",
                 FirstName = "New",
                 LastName = "User",
-                IsActive = true,
                 CreatedAt = DateTime.UtcNow
             };
             _context.Users.Add(newUser);
@@ -480,7 +470,6 @@ namespace ProjectTracker.Tests.Services
                 Email = "another@test.com",
                 FirstName = "Another",
                 LastName = "User",
-                IsActive = true,
                 CreatedAt = DateTime.UtcNow
             };
 

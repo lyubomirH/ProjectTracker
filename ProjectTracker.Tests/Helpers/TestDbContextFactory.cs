@@ -31,7 +31,6 @@ namespace ProjectTracker.Tests.Helpers
                 Email = "test@test.com",
                 FirstName = "Test",
                 LastName = "User",
-                IsActive = true,
                 CreatedAt = DateTime.UtcNow
             };
 

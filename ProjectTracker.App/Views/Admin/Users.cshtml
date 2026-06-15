@@ -69,7 +69,15 @@
                             </td>
                             <td class="align-middle">
                                 <small class="text-muted">
-                                    <i class="fas fa-clock"></i> @user.LastLoginDisplay
+                                    <i class="fas fa-clock"></i>
+                                    @if (user.LastLoginAt.HasValue)
+                                    {
+                                        @user.LastLoginAt.Value.ToString("yyyy-MM-dd HH:mm")
+                                    }
+                                    else
+                                    {
+                                        @:Never
+                                    }
                                 </small>
                             </td>
                             <td class="align-middle">

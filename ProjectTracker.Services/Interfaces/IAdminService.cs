@@ -15,5 +15,6 @@ namespace ProjectTracker.Services.Interfaces
         Task<List<RoleDto>> GetRolesAsync();
         Task<bool> CreateRoleAsync(string roleName);
         Task<bool> DeleteRoleAsync(string roleId);
+        Task<bool> UpdateLastLoginAsync(string userId);
     }
 }

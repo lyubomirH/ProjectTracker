@@ -45,7 +45,6 @@ namespace ProjectTracker.Tests.Services
                 Email = "assignee@test.com",
                 FirstName = "Assignee",
                 LastName = "User",
-                IsActive = true,
                 CreatedAt = DateTime.UtcNow
             };
             _context.Users.Add(assigneeUser);

@@ -45,7 +45,7 @@ namespace ProjectTracker.Web.Controllers
                     Email = u.Email,
                     FullName = u.FullName,
                     CreatedAt = u.CreatedAt,
-                    IsActive = u.IsActive
+                    LastLoginAt = u.LastLoginAt 
                 }).ToList()
             };
 
@@ -67,6 +67,7 @@ namespace ProjectTracker.Web.Controllers
                     FirstName = u.FirstName,
                     LastName = u.LastName,
                     CreatedAt = u.CreatedAt,
+                    LastLoginAt = u.LastLoginAt,
                     Roles = u.Roles,
                     Department = u.Department,
                     JobTitle = u.JobTitle

@@ -212,7 +212,7 @@ namespace ProjectTracker.Services.Services
             }
 
             var availableUsers = await _context.Users
-                .Where(u => !existingUserIds.Contains(u.Id) && u.IsActive)
+                .Where(u => !existingUserIds.Contains(u.Id))
                 .Select(u => new UserDto
                 {
                     Id = u.Id,

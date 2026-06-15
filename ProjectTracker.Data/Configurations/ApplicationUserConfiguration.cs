@@ -19,9 +19,6 @@ namespace ProjectTracker.Data.Configurations
             builder.HasIndex(u => u.LastName)
                 .HasDatabaseName("IX_Users_LastName");
 
-            builder.HasIndex(u => u.IsActive)
-                .HasDatabaseName("IX_Users_IsActive");
-
             builder.Property(u => u.FirstName)
                 .IsRequired()
                 .HasMaxLength(50);
@@ -41,6 +38,9 @@ namespace ProjectTracker.Data.Configurations
 
             builder.Property(u => u.AvatarUrl)
                 .HasMaxLength(500);
+
+            builder.Property(u => u.LastLoginAt)
+                .HasColumnType("datetime2");
 
             builder.Ignore(u => u.FullName);
         }
