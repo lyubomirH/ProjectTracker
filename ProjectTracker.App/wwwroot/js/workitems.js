@@ -1,6 +1,4 @@
-﻿// WorkItems AJAX functions
-
-async function updateWorkItemStatus(workItemId, newStatus) {
+﻿async function updateWorkItemStatus(workItemId, newStatus) {
     try {
         const response = await fetch(`/api/WorkItems/${workItemId}/status`, {
             method: 'PATCH',
