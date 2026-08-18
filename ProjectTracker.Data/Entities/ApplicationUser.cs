@@ -11,7 +11,8 @@ namespace ProjectTracker.Data.Entities
         public string? Department { get; set; }
         public string? JobTitle { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-        public DateTime? LastLoginAt { get; set; }  
+        public DateTime? LastLoginAt { get; set; }
+        public bool IsActive { get; set; } = true;
 
         public string FullName => $"{FirstName} {LastName}";
 

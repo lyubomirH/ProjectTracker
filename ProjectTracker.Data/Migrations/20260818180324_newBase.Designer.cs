@@ -12,8 +12,8 @@ using ProjectTracker.Data;
 namespace ProjectTracker.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260611083633_RemIsActiv")]
-    partial class RemIsActiv
+    [Migration("20260818180324_newBase")]
+    partial class newBase
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -196,6 +196,9 @@ namespace ProjectTracker.Data.Migrations
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
 
                     b.Property<string>("JobTitle")
                         .HasMaxLength(100)

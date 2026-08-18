@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace ProjectTracker.Data.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialCreate : Migration
+    public partial class newBase : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -384,11 +384,6 @@ namespace ProjectTracker.Data.Migrations
                 name: "IX_Users_FirstName",
                 table: "Users",
                 column: "FirstName");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Users_IsActive",
-                table: "Users",
-                column: "IsActive");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Users_LastName",
