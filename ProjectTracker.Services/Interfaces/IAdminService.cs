@@ -5,7 +5,7 @@ namespace ProjectTracker.Services.Interfaces
     public interface IAdminService
     {
         Task<AdminStatisticsDto> GetStatisticsAsync();
-        Task<PaginatedResult<UserAdminDto>> GetUsersAsync(string? searchTerm, int page, int pageSize);
+        Task<PaginatedResult<UserAdminDto>> GetUsersAsync(string? searchTerm, int page, int pageSize, bool? isActive = null);
         Task<UserAdminDto?> GetUserByIdAsync(string userId);
         Task<bool> UpdateUserAsync(EditUserDto userDto);
         Task<bool> DeleteUserAsync(string userId, string currentUserId);

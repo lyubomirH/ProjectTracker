@@ -19,7 +19,6 @@ namespace ProjectTracker.Services.Services
         public async Task<DashboardDto> GetDashboardDataAsync(string userId, bool isAdmin)
         {
             var projectsQuery = _context.Projects
-                .Include(p => p.WorkItems)
                 .Where(p => !p.IsDeleted);
 
             if (!isAdmin && !string.IsNullOrEmpty(userId))
@@ -29,10 +28,26 @@ namespace ProjectTracker.Services.Services
                     p.TeamMembers.Any(tm => tm.UserId == userId));
             }
 
-            var projects = await projectsQuery.ToListAsync();
+            // Optimized - Get project counts with aggregation
+            var projectData = await projectsQuery
+                .GroupBy(p => 1)
+                .Select(g => new
+                {
+                    TotalProjects = g.Count(),
+                    ActiveProjects = g.Count(p => p.Status == ProjectStatus.Active),
+                    CompletedProjects = g.Count(p => p.Status == ProjectStatus.Completed),
+                    OnHoldProjects = g.Count(p => p.Status == ProjectStatus.OnHold),
+                    ProjectsByStatus = g.GroupBy(p => p.Status)
+                        .Select(sg => new ProjectByStatusDto
+                        {
+                            Status = sg.Key.ToString(),
+                            Count = sg.Count(),
+                            Color = GetProjectStatusColor(sg.Key)
+                        }).ToList()
+                })
+                .FirstOrDefaultAsync();
 
             var workItemsQuery = _context.WorkItems
-                .Include(w => w.Project)
                 .Where(w => !w.Project.IsDeleted);
 
             if (!isAdmin && !string.IsNullOrEmpty(userId))
@@ -44,54 +59,49 @@ namespace ProjectTracker.Services.Services
                     w.Project.TeamMembers.Any(tm => tm.UserId == userId));
             }
 
-            var workItems = await workItemsQuery.ToListAsync();
+            // Optimized - Get work item counts with aggregation
+            var workItemData = await workItemsQuery
+                .GroupBy(w => 1)
+                .Select(g => new
+                {
+                    TotalWorkItems = g.Count(),
+                    CompletedWorkItems = g.Count(w => w.Status == WorkItemStatus.Done),
+                    InProgressWorkItems = g.Count(w => w.Status == WorkItemStatus.InProgress),
+                    ToDoWorkItems = g.Count(w => w.Status == WorkItemStatus.ToDo),
+                    BlockedWorkItems = g.Count(w => w.Status == WorkItemStatus.Blocked),
+                    WorkItemsByStatus = g.GroupBy(w => w.Status)
+                        .Select(sg => new WorkItemByStatusDto
+                        {
+                            Status = sg.Key.ToString(),
+                            Count = sg.Count(),
+                            Color = GetWorkItemStatusColor(sg.Key)
+                        }).ToList()
+                })
+                .FirstOrDefaultAsync();
 
-            var teamMembersQuery = _context.TeamMembers
-                .Include(tm => tm.Project)
-                .Where(tm => tm.IsActive);
-
-            if (!isAdmin && !string.IsNullOrEmpty(userId))
-            {
-                teamMembersQuery = teamMembersQuery.Where(tm =>
-                    tm.Project.OwnerId == userId ||
-                    tm.UserId == userId);
-            }
-
-            var teamMembers = await teamMembersQuery.Select(tm => tm.UserId).Distinct().ToListAsync();
+            var teamMembersCount = await _context.TeamMembers
+                .Where(tm => tm.IsActive)
+                .Select(tm => tm.UserId)
+                .Distinct()
+                .CountAsync();
 
             var dashboard = new DashboardDto
             {
-                TotalProjects = projects.Count,
-                ActiveProjects = projects.Count(p => p.Status == ProjectStatus.Active),
-                CompletedProjects = projects.Count(p => p.Status == ProjectStatus.Completed),
-                OnHoldProjects = projects.Count(p => p.Status == ProjectStatus.OnHold),
+                TotalProjects = projectData?.TotalProjects ?? 0,
+                ActiveProjects = projectData?.ActiveProjects ?? 0,
+                CompletedProjects = projectData?.CompletedProjects ?? 0,
+                OnHoldProjects = projectData?.OnHoldProjects ?? 0,
 
-                TotalWorkItems = workItems.Count,
-                CompletedWorkItems = workItems.Count(w => w.Status == WorkItemStatus.Done),
-                InProgressWorkItems = workItems.Count(w => w.Status == WorkItemStatus.InProgress),
-                ToDoWorkItems = workItems.Count(w => w.Status == WorkItemStatus.ToDo),
-                BlockedWorkItems = workItems.Count(w => w.Status == WorkItemStatus.Blocked),
+                TotalWorkItems = workItemData?.TotalWorkItems ?? 0,
+                CompletedWorkItems = workItemData?.CompletedWorkItems ?? 0,
+                InProgressWorkItems = workItemData?.InProgressWorkItems ?? 0,
+                ToDoWorkItems = workItemData?.ToDoWorkItems ?? 0,
+                BlockedWorkItems = workItemData?.BlockedWorkItems ?? 0,
 
-                TotalTeamMembers = teamMembers.Count,
+                TotalTeamMembers = teamMembersCount,
 
-                WorkItemsByStatus = new List<WorkItemByStatusDto>
-        {
-            new() { Status = "To Do", Count = workItems.Count(w => w.Status == WorkItemStatus.ToDo), Color = "secondary" },
-            new() { Status = "In Progress", Count = workItems.Count(w => w.Status == WorkItemStatus.InProgress), Color = "primary" },
-            new() { Status = "Code Review", Count = workItems.Count(w => w.Status == WorkItemStatus.CodeReview), Color = "info" },
-            new() { Status = "Testing", Count = workItems.Count(w => w.Status == WorkItemStatus.Testing), Color = "warning" },
-            new() { Status = "Done", Count = workItems.Count(w => w.Status == WorkItemStatus.Done), Color = "success" },
-            new() { Status = "Blocked", Count = workItems.Count(w => w.Status == WorkItemStatus.Blocked), Color = "danger" }
-        },
-
-                ProjectsByStatus = new List<ProjectByStatusDto>
-        {
-            new() { Status = "Active", Count = projects.Count(p => p.Status == ProjectStatus.Active), Color = "success" },
-            new() { Status = "On Hold", Count = projects.Count(p => p.Status == ProjectStatus.OnHold), Color = "warning" },
-            new() { Status = "Completed", Count = projects.Count(p => p.Status == ProjectStatus.Completed), Color = "info" },
-            new() { Status = "Archived", Count = projects.Count(p => p.Status == ProjectStatus.Archived), Color = "secondary" },
-            new() { Status = "Cancelled", Count = projects.Count(p => p.Status == ProjectStatus.Cancelled), Color = "danger" }
-        }
+                WorkItemsByStatus = workItemData?.WorkItemsByStatus ?? new List<WorkItemByStatusDto>(),
+                ProjectsByStatus = projectData?.ProjectsByStatus ?? new List<ProjectByStatusDto>()
             };
 
             dashboard.RecentActivities = await GetRecentActivitiesAsync(userId ?? string.Empty, isAdmin, 10);
@@ -104,11 +114,11 @@ namespace ProjectTracker.Services.Services
         {
             var activities = new List<RecentActivityDto>();
 
+            // Optimized project activities with Select
             var projectsQuery = _context.Projects
-                .Include(p => p.Owner)
                 .Where(p => !p.IsDeleted);
 
-            if (!isAdmin)
+            if (!isAdmin && !string.IsNullOrEmpty(userId))
             {
                 projectsQuery = projectsQuery.Where(p =>
                     p.OwnerId == userId ||
@@ -124,7 +134,7 @@ namespace ProjectTracker.Services.Services
                     Title = p.Name,
                     Type = "Project",
                     Action = "Created",
-                    UserName = p.Owner.FullName,
+                    UserName = p.Owner != null ? p.Owner.FullName : "Unknown",
                     CreatedAt = p.CreatedAt,
                     ProjectId = p.Id,
                     ProjectName = p.Name,
@@ -135,12 +145,11 @@ namespace ProjectTracker.Services.Services
 
             activities.AddRange(recentProjects);
 
+            // Optimized work item activities with Select
             var workItemsQuery = _context.WorkItems
-                .Include(w => w.Project)
-                .Include(w => w.CreatedBy)
                 .Where(w => !w.Project.IsDeleted);
 
-            if (!isAdmin)
+            if (!isAdmin && !string.IsNullOrEmpty(userId))
             {
                 workItemsQuery = workItemsQuery.Where(w =>
                     w.AssigneeId == userId ||
@@ -169,6 +178,7 @@ namespace ProjectTracker.Services.Services
 
             activities.AddRange(recentWorkItems);
 
+            // Optimized completed work items with Select
             var completedWorkItems = await workItemsQuery
                 .Where(w => w.Status == WorkItemStatus.Done && w.CompletedAt.HasValue)
                 .OrderByDescending(w => w.CompletedAt)
@@ -199,33 +209,61 @@ namespace ProjectTracker.Services.Services
         public async Task<IEnumerable<ProjectProgressDto>> GetProjectProgressAsync(string userId, bool isAdmin)
         {
             var projectsQuery = _context.Projects
-                .Include(p => p.WorkItems)
                 .Where(p => !p.IsDeleted && p.Status == ProjectStatus.Active);
 
-            if (!isAdmin)
+            if (!isAdmin && !string.IsNullOrEmpty(userId))
             {
                 projectsQuery = projectsQuery.Where(p =>
                     p.OwnerId == userId ||
                     p.TeamMembers.Any(tm => tm.UserId == userId));
             }
 
-            var projects = await projectsQuery.ToListAsync();
+            // Optimized with Select - calculate completion directly in query
+            var projects = await projectsQuery
+                .Select(p => new ProjectProgressDto
+                {
+                    Id = p.Id,
+                    Name = p.Name,
+                    TotalTasks = p.WorkItems.Count,
+                    CompletedTasks = p.WorkItems.Count(w => w.Status == WorkItemStatus.Done),
+                    CompletionPercentage = p.WorkItems.Count > 0
+                        ? (double)p.WorkItems.Count(w => w.Status == WorkItemStatus.Done) / p.WorkItems.Count * 100
+                        : 0,
+                    Status = p.Status.ToString(),
+                    EndDate = p.EndDate
+                })
+                .OrderByDescending(p => p.CompletionPercentage)
+                .Take(5)
+                .ToListAsync();
 
-            return projects.Select(p => new ProjectProgressDto
+            return projects;
+        }
+
+        private string GetProjectStatusColor(ProjectStatus status)
+        {
+            return status switch
             {
-                Id = p.Id,
-                Name = p.Name,
-                TotalTasks = p.WorkItems.Count,
-                CompletedTasks = p.WorkItems.Count(w => w.Status == WorkItemStatus.Done),
-                CompletionPercentage = p.WorkItems.Count > 0
-                    ? (double)p.WorkItems.Count(w => w.Status == WorkItemStatus.Done) / p.WorkItems.Count * 100
-                    : 0,
-                Status = p.Status.ToString(),
-                EndDate = p.EndDate
-            })
-            .OrderByDescending(p => p.CompletionPercentage)
-            .Take(5)
-            .ToList();
+                ProjectStatus.Active => "success",
+                ProjectStatus.OnHold => "warning",
+                ProjectStatus.Completed => "info",
+                ProjectStatus.Archived => "secondary",
+                ProjectStatus.Cancelled => "danger",
+                _ => "secondary"
+            };
+        }
+
+        private string GetWorkItemStatusColor(WorkItemStatus status)
+        {
+            return status switch
+            {
+                WorkItemStatus.ToDo => "secondary",
+                WorkItemStatus.InProgress => "primary",
+                WorkItemStatus.CodeReview => "info",
+                WorkItemStatus.Testing => "warning",
+                WorkItemStatus.Done => "success",
+                WorkItemStatus.Blocked => "danger",
+                _ => "secondary"
+            };
         }
     }
 }

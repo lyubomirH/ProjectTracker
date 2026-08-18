@@ -19,9 +19,6 @@ namespace ProjectTracker.Services.Services
         public async Task<IEnumerable<ProjectDto>> GetAllProjectsAsync(string userId, bool isAdmin)
         {
             var query = _context.Projects
-                .Include(p => p.Owner)
-                .Include(p => p.TeamMembers)
-                .Include(p => p.WorkItems)
                 .Where(p => !p.IsDeleted);
 
             if (!isAdmin && !string.IsNullOrEmpty(userId))
@@ -31,79 +28,85 @@ namespace ProjectTracker.Services.Services
                     p.TeamMembers.Any(tm => tm.UserId == userId));
             }
 
-            var projects = await query.ToListAsync();
+            // Optimized with Select
+            var projects = await query
+                .Select(p => new ProjectDto
+                {
+                    Id = p.Id,
+                    Name = p.Name,
+                    Description = p.Description,
+                    StartDate = p.StartDate,
+                    EndDate = p.EndDate,
+                    Status = p.Status.ToString(),
+                    OwnerId = p.OwnerId,
+                    OwnerName = p.Owner != null ? p.Owner.FullName : "Unknown",
+                    CreatedAt = p.CreatedAt,
+                    TeamMembersCount = p.TeamMembers.Count,
+                    WorkItemsCount = p.WorkItems.Count,
+                    CompletedWorkItemsCount = p.WorkItems.Count(w => w.Status == WorkItemStatus.Done),
+                    CompletionPercentage = p.WorkItems.Count > 0
+                        ? (double)p.WorkItems.Count(w => w.Status == WorkItemStatus.Done) / p.WorkItems.Count * 100
+                        : 0
+                })
+                .OrderByDescending(p => p.CreatedAt)
+                .ToListAsync();
 
-            return projects.Select(p => new ProjectDto
-            {
-                Id = p.Id,
-                Name = p.Name,
-                Description = p.Description,
-                StartDate = p.StartDate,
-                EndDate = p.EndDate,
-                Status = p.Status.ToString(),
-                OwnerId = p.OwnerId,
-                OwnerName = p.Owner?.FullName ?? "Unknown",
-                CreatedAt = p.CreatedAt,
-                TeamMembersCount = p.TeamMembers?.Count ?? 0,
-                WorkItemsCount = p.WorkItems?.Count ?? 0,
-                CompletedWorkItemsCount = p.WorkItems?.Count(w => w.Status == WorkItemStatus.Done) ?? 0,
-                CompletionPercentage = (p.WorkItems?.Count ?? 0) > 0
-                    ? (double)(p.WorkItems?.Count(w => w.Status == WorkItemStatus.Done) ?? 0) / (p.WorkItems?.Count ?? 0) * 100
-                    : 0
-            }).OrderByDescending(p => p.CreatedAt);
+            return projects;
         }
 
         public async Task<ProjectDto?> GetProjectByIdAsync(int id, string userId, bool isAdmin)
         {
             var project = await _context.Projects
-                .Include(p => p.Owner)
-                .Include(p => p.TeamMembers)
-                    .ThenInclude(tm => tm.User)
-                .Include(p => p.WorkItems)
-                    .ThenInclude(w => w.Assignee)
-                .FirstOrDefaultAsync(p => p.Id == id && !p.IsDeleted);
+                .Where(p => p.Id == id && !p.IsDeleted)
+                .Select(p => new ProjectDto
+                {
+                    Id = p.Id,
+                    Name = p.Name,
+                    Description = p.Description,
+                    StartDate = p.StartDate,
+                    EndDate = p.EndDate,
+                    Status = p.Status.ToString(),
+                    OwnerId = p.OwnerId,
+                    OwnerName = p.Owner != null ? p.Owner.FullName : "Unknown",
+                    CreatedAt = p.CreatedAt,
+                    TeamMembersCount = p.TeamMembers.Count,
+                    WorkItemsCount = p.WorkItems.Count,
+                    CompletedWorkItemsCount = p.WorkItems.Count(w => w.Status == WorkItemStatus.Done),
+                    CompletionPercentage = p.WorkItems.Count > 0
+                        ? (double)p.WorkItems.Count(w => w.Status == WorkItemStatus.Done) / p.WorkItems.Count * 100
+                        : 0,
+                    TeamMembers = p.TeamMembers
+                        .Where(tm => tm.IsActive)
+                        .Select(tm => new TeamMemberDto
+                        {
+                            UserId = tm.UserId,
+                            UserName = tm.User != null ? tm.User.FullName : "Unknown",
+                            Role = tm.Role.ToString(),
+                            JoinedAt = tm.JoinedAt
+                        }).ToList(),
+                    WorkItems = p.WorkItems
+                        .Select(w => new WorkItemSummaryDto
+                        {
+                            Id = w.Id,
+                            Title = w.Title,
+                            Status = w.Status.ToString(),
+                            Priority = w.Priority.ToString(),
+                            AssigneeName = w.Assignee != null ? w.Assignee.FullName : "Unassigned",
+                            DueDate = w.DueDate
+                        }).ToList()
+                })
+                .FirstOrDefaultAsync();
 
             if (project == null) return null;
 
+            // Check permissions without loading entities
             var isOwner = project.OwnerId == userId;
-            var isTeamMember = project.TeamMembers?.Any(tm => tm.UserId == userId) ?? false;
+            var isTeamMember = await _context.TeamMembers
+                .AnyAsync(tm => tm.ProjectId == id && tm.UserId == userId && tm.IsActive);
 
             if (!isAdmin && !isOwner && !isTeamMember) return null;
 
-            return new ProjectDto
-            {
-                Id = project.Id,
-                Name = project.Name,
-                Description = project.Description,
-                StartDate = project.StartDate,
-                EndDate = project.EndDate,
-                Status = project.Status.ToString(),
-                OwnerId = project.OwnerId,
-                OwnerName = project.Owner?.FullName ?? "Unknown",
-                CreatedAt = project.CreatedAt,
-                TeamMembersCount = project.TeamMembers?.Count ?? 0,
-                WorkItemsCount = project.WorkItems?.Count ?? 0,
-                CompletedWorkItemsCount = project.WorkItems?.Count(w => w.Status == WorkItemStatus.Done) ?? 0,
-                CompletionPercentage = (project.WorkItems?.Count ?? 0) > 0
-                    ? (double)(project.WorkItems?.Count(w => w.Status == WorkItemStatus.Done) ?? 0) / (project.WorkItems?.Count ?? 0) * 100
-                    : 0,
-                TeamMembers = project.TeamMembers?.Select(tm => new TeamMemberDto
-                {
-                    UserId = tm.UserId,
-                    UserName = tm.User?.FullName ?? "Unknown",
-                    Role = tm.Role.ToString(),
-                    JoinedAt = tm.JoinedAt
-                }).ToList() ?? new List<TeamMemberDto>(),
-                WorkItems = project.WorkItems?.Select(w => new WorkItemSummaryDto
-                {
-                    Id = w.Id,
-                    Title = w.Title,
-                    Status = w.Status.ToString(),
-                    Priority = w.Priority.ToString(),
-                    AssigneeName = w.Assignee?.FullName ?? "Unassigned",
-                    DueDate = w.DueDate
-                }).ToList() ?? new List<WorkItemSummaryDto>()
-            };
+            return project;
         }
 
         public async Task<ProjectDto> CreateProjectAsync(CreateProjectDto projectDto, string ownerId)
@@ -142,7 +145,6 @@ namespace ProjectTracker.Services.Services
                 EndDate = project.EndDate,
                 Status = project.Status.ToString(),
                 OwnerId = project.OwnerId,
-                OwnerName = project.Owner?.FullName ?? string.Empty,
                 CreatedAt = project.CreatedAt,
                 TeamMembersCount = 1,
                 WorkItemsCount = 0,
@@ -156,15 +158,9 @@ namespace ProjectTracker.Services.Services
             var project = await _context.Projects
                 .FirstOrDefaultAsync(p => p.Id == projectDto.Id && !p.IsDeleted);
 
-            if (project == null)
-            {
-                return null;
-            }
+            if (project == null) return null;
 
-            if (!isAdmin && project.OwnerId != userId)
-            {
-                return null;
-            }
+            if (!isAdmin && project.OwnerId != userId) return null;
 
             project.Name = projectDto.Name;
             project.Description = projectDto.Description;
@@ -182,15 +178,9 @@ namespace ProjectTracker.Services.Services
             var project = await _context.Projects
                 .FirstOrDefaultAsync(p => p.Id == id && !p.IsDeleted);
 
-            if (project == null)
-            {
-                return false;
-            }
+            if (project == null) return false;
 
-            if (!isAdmin && project.OwnerId != userId)
-            {
-                return false;
-            }
+            if (!isAdmin && project.OwnerId != userId) return false;
 
             project.IsDeleted = true;
             await _context.SaveChangesAsync();
@@ -212,20 +202,24 @@ namespace ProjectTracker.Services.Services
 
         public async Task<double> GetProjectCompletionPercentageAsync(int projectId)
         {
-            var total = await _context.WorkItems.CountAsync(w => w.ProjectId == projectId);
-            if (total == 0) return 0;
+            var result = await _context.WorkItems
+                .Where(w => w.ProjectId == projectId)
+                .GroupBy(w => 1)
+                .Select(g => new
+                {
+                    Total = g.Count(),
+                    Completed = g.Count(w => w.Status == WorkItemStatus.Done)
+                })
+                .FirstOrDefaultAsync();
 
-            var completed = await _context.WorkItems
-                .CountAsync(w => w.ProjectId == projectId && w.Status == WorkItemStatus.Done);
+            if (result == null || result.Total == 0) return 0;
 
-            return (double)completed / total * 100;
+            return (double)result.Completed / result.Total * 100;
         }
+
         public async Task<PaginatedResult<ProjectDto>> GetFilteredProjectsAsync(ProjectFilterDto filter)
         {
             var query = _context.Projects
-                .Include(p => p.Owner)
-                .Include(p => p.TeamMembers)
-                .Include(p => p.WorkItems)
                 .Where(p => !p.IsDeleted);
 
             if (!filter.IsAdmin && !string.IsNullOrEmpty(filter.UserId))
@@ -257,33 +251,34 @@ namespace ProjectTracker.Services.Services
             };
 
             var totalCount = await query.CountAsync();
+
+            // Optimized with Select
             var items = await query
                 .Skip((filter.Page - 1) * filter.PageSize)
                 .Take(filter.PageSize)
+                .Select(p => new ProjectDto
+                {
+                    Id = p.Id,
+                    Name = p.Name,
+                    Description = p.Description,
+                    StartDate = p.StartDate,
+                    EndDate = p.EndDate,
+                    Status = p.Status.ToString(),
+                    OwnerId = p.OwnerId,
+                    OwnerName = p.Owner != null ? p.Owner.FullName : "Unknown",
+                    CreatedAt = p.CreatedAt,
+                    TeamMembersCount = p.TeamMembers.Count,
+                    WorkItemsCount = p.WorkItems.Count,
+                    CompletedWorkItemsCount = p.WorkItems.Count(w => w.Status == WorkItemStatus.Done),
+                    CompletionPercentage = p.WorkItems.Count > 0
+                        ? (double)p.WorkItems.Count(w => w.Status == WorkItemStatus.Done) / p.WorkItems.Count * 100
+                        : 0
+                })
                 .ToListAsync();
-
-            var projectDtos = items.Select(p => new ProjectDto
-            {
-                Id = p.Id,
-                Name = p.Name,
-                Description = p.Description,
-                StartDate = p.StartDate,
-                EndDate = p.EndDate,
-                Status = p.Status.ToString(),
-                OwnerId = p.OwnerId,
-                OwnerName = p.Owner?.FullName ?? "Unknown",
-                CreatedAt = p.CreatedAt,
-                TeamMembersCount = p.TeamMembers?.Count ?? 0,
-                WorkItemsCount = p.WorkItems?.Count ?? 0,
-                CompletedWorkItemsCount = p.WorkItems?.Count(w => w.Status == WorkItemStatus.Done) ?? 0,
-                CompletionPercentage = (p.WorkItems?.Count ?? 0) > 0
-                    ? (double)(p.WorkItems?.Count(w => w.Status == WorkItemStatus.Done) ?? 0) / (p.WorkItems?.Count ?? 0) * 100
-                    : 0
-            });
 
             return new PaginatedResult<ProjectDto>
             {
-                Items = projectDtos,
+                Items = items,
                 TotalCount = totalCount,
                 Page = filter.Page,
                 PageSize = filter.PageSize
@@ -293,9 +288,6 @@ namespace ProjectTracker.Services.Services
         public async Task<PaginatedResult<WorkItemDto>> GetFilteredWorkItemsAsync(WorkItemFilterDto filter)
         {
             var query = _context.WorkItems
-                .Include(w => w.Project)
-                .Include(w => w.Assignee)
-                .Include(w => w.CreatedBy)
                 .Where(w => !w.Project.IsDeleted);
 
             if (!filter.IsAdmin)
@@ -345,35 +337,36 @@ namespace ProjectTracker.Services.Services
             };
 
             var totalCount = await query.CountAsync();
+
+            // Optimized with Select
             var items = await query
                 .Skip((filter.Page - 1) * filter.PageSize)
                 .Take(filter.PageSize)
+                .Select(w => new WorkItemDto
+                {
+                    Id = w.Id,
+                    Title = w.Title,
+                    Description = w.Description,
+                    Priority = w.Priority.ToString(),
+                    Status = w.Status.ToString(),
+                    ProjectId = w.ProjectId,
+                    ProjectName = w.Project.Name,
+                    AssigneeId = w.AssigneeId,
+                    AssigneeName = w.Assignee != null ? w.Assignee.FullName : "Unassigned",
+                    CreatedById = w.CreatedById ?? string.Empty,
+                    CreatedByName = w.CreatedBy != null ? w.CreatedBy.FullName : "Unknown",
+                    CreatedAt = w.CreatedAt,
+                    DueDate = w.DueDate,
+                    CompletedAt = w.CompletedAt,
+                    EstimatedHours = w.EstimatedHours,
+                    ActualHours = w.ActualHours,
+                    CommentsCount = w.Comments.Count
+                })
                 .ToListAsync();
-
-            var workItemDtos = items.Select(w => new WorkItemDto
-            {
-                Id = w.Id,
-                Title = w.Title,
-                Description = w.Description,
-                Priority = w.Priority.ToString(),
-                Status = w.Status.ToString(),
-                ProjectId = w.ProjectId,
-                ProjectName = w.Project.Name,
-                AssigneeId = w.AssigneeId,
-                AssigneeName = w.Assignee?.FullName ?? "Unassigned",
-                CreatedById = w.CreatedById ?? string.Empty,
-                CreatedByName = w.CreatedBy?.FullName ?? "Unknown",
-                CreatedAt = w.CreatedAt,
-                DueDate = w.DueDate,
-                CompletedAt = w.CompletedAt,
-                EstimatedHours = w.EstimatedHours,
-                ActualHours = w.ActualHours,
-                CommentsCount = w.Comments.Count
-            });
 
             return new PaginatedResult<WorkItemDto>
             {
-                Items = workItemDtos,
+                Items = items,
                 TotalCount = totalCount,
                 Page = filter.Page,
                 PageSize = filter.PageSize
@@ -392,6 +385,7 @@ namespace ProjectTracker.Services.Services
                     p.TeamMembers.Any(tm => tm.UserId == userId));
             }
 
+            // Optimized with Select
             return await query
                 .OrderBy(p => p.Name)
                 .Select(p => new ProjectDropdownDto

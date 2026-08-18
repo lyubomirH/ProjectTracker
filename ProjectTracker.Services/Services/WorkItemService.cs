@@ -19,9 +19,6 @@ namespace ProjectTracker.Services.Services
         public async Task<IEnumerable<WorkItemDto>> GetWorkItemsAsync(int? projectId, string userId, bool isAdmin)
         {
             var query = _context.WorkItems
-                .Include(w => w.Project)
-                .Include(w => w.Assignee)
-                .Include(w => w.CreatedBy)
                 .Where(w => !w.Project.IsDeleted);
 
             if (projectId.HasValue)
@@ -38,46 +35,66 @@ namespace ProjectTracker.Services.Services
                     w.Project.TeamMembers.Any(tm => tm.UserId == userId));
             }
 
-            var workItems = await query.ToListAsync();
-
-            return workItems.Select(w => new WorkItemDto
-            {
-                Id = w.Id,
-                Title = w.Title,
-                Description = w.Description,
-                Priority = w.Priority.ToString(),
-                Status = w.Status.ToString(),
-                ProjectId = w.ProjectId,
-                ProjectName = w.Project.Name,
-                AssigneeId = w.AssigneeId,
-                AssigneeName = w.Assignee?.FullName ?? "Unassigned",
-                CreatedById = w.CreatedById ?? string.Empty,
-                CreatedByName = w.CreatedBy?.FullName ?? "Unknown",
-                CreatedAt = w.CreatedAt,
-                DueDate = w.DueDate,
-                CompletedAt = w.CompletedAt,
-                EstimatedHours = w.EstimatedHours,
-                ActualHours = w.ActualHours,
-                CommentsCount = w.Comments.Count
-            }).OrderByDescending(w => w.CreatedAt);
+            // Optimized with Select
+            return await query
+                .Select(w => new WorkItemDto
+                {
+                    Id = w.Id,
+                    Title = w.Title,
+                    Description = w.Description,
+                    Priority = w.Priority.ToString(),
+                    Status = w.Status.ToString(),
+                    ProjectId = w.ProjectId,
+                    ProjectName = w.Project.Name,
+                    AssigneeId = w.AssigneeId,
+                    AssigneeName = w.Assignee != null ? w.Assignee.FullName : "Unassigned",
+                    CreatedById = w.CreatedById ?? string.Empty,
+                    CreatedByName = w.CreatedBy != null ? w.CreatedBy.FullName : "Unknown",
+                    CreatedAt = w.CreatedAt,
+                    DueDate = w.DueDate,
+                    CompletedAt = w.CompletedAt,
+                    EstimatedHours = w.EstimatedHours,
+                    ActualHours = w.ActualHours,
+                    CommentsCount = w.Comments.Count
+                })
+                .OrderByDescending(w => w.CreatedAt)
+                .ToListAsync();
         }
 
         public async Task<WorkItemDto?> GetWorkItemByIdAsync(int id, string userId, bool isAdmin)
         {
             var workItem = await _context.WorkItems
-                .Include(w => w.Project)
-                .Include(w => w.Assignee)
-                .Include(w => w.CreatedBy)
-                .Include(w => w.Comments)
-                    .ThenInclude(c => c.Author)
-                .FirstOrDefaultAsync(w => w.Id == id && !w.Project.IsDeleted);
+                .Where(w => w.Id == id && !w.Project.IsDeleted)
+                .Select(w => new WorkItemDto
+                {
+                    Id = w.Id,
+                    Title = w.Title,
+                    Description = w.Description,
+                    Priority = w.Priority.ToString(),
+                    Status = w.Status.ToString(),
+                    ProjectId = w.ProjectId,
+                    ProjectName = w.Project.Name,
+                    AssigneeId = w.AssigneeId,
+                    AssigneeName = w.Assignee != null ? w.Assignee.FullName : "Unassigned",
+                    CreatedById = w.CreatedById ?? string.Empty,
+                    CreatedByName = w.CreatedBy != null ? w.CreatedBy.FullName : "Unknown",
+                    CreatedAt = w.CreatedAt,
+                    DueDate = w.DueDate,
+                    CompletedAt = w.CompletedAt,
+                    EstimatedHours = w.EstimatedHours,
+                    ActualHours = w.ActualHours,
+                    CommentsCount = w.Comments.Count
+                })
+                .FirstOrDefaultAsync();
 
-            if (workItem == null)
-            {
-                return null;
-            }
+            if (workItem == null) return null;
 
-            var isOwner = workItem.Project.OwnerId == userId;
+            // Check permissions
+            var isOwner = await _context.Projects
+                .Where(p => p.Id == workItem.ProjectId)
+                .Select(p => p.OwnerId == userId)
+                .FirstOrDefaultAsync();
+
             var isTeamMember = await _context.TeamMembers
                 .AnyAsync(tm => tm.ProjectId == workItem.ProjectId && tm.UserId == userId && tm.IsActive);
 
@@ -86,26 +103,7 @@ namespace ProjectTracker.Services.Services
                 return null;
             }
 
-            return new WorkItemDto
-            {
-                Id = workItem.Id,
-                Title = workItem.Title,
-                Description = workItem.Description,
-                Priority = workItem.Priority.ToString(),
-                Status = workItem.Status.ToString(),
-                ProjectId = workItem.ProjectId,
-                ProjectName = workItem.Project.Name,
-                AssigneeId = workItem.AssigneeId,
-                AssigneeName = workItem.Assignee?.FullName ?? "Unassigned",
-                CreatedById = workItem.CreatedById ?? string.Empty,
-                CreatedByName = workItem.CreatedBy?.FullName ?? "Unknown",
-                CreatedAt = workItem.CreatedAt,
-                DueDate = workItem.DueDate,
-                CompletedAt = workItem.CompletedAt,
-                EstimatedHours = workItem.EstimatedHours,
-                ActualHours = workItem.ActualHours,
-                CommentsCount = workItem.Comments.Count
-            };
+            return workItem;
         }
 
         public async Task<WorkItemDto> CreateWorkItemAsync(CreateWorkItemDto workItemDto, string createdById)
@@ -127,7 +125,10 @@ namespace ProjectTracker.Services.Services
             _context.WorkItems.Add(workItem);
             await _context.SaveChangesAsync();
 
-            var project = await _context.Projects.FindAsync(workItemDto.ProjectId);
+            var projectName = await _context.Projects
+                .Where(p => p.Id == workItemDto.ProjectId)
+                .Select(p => p.Name)
+                .FirstOrDefaultAsync();
 
             return new WorkItemDto
             {
@@ -137,7 +138,7 @@ namespace ProjectTracker.Services.Services
                 Priority = workItem.Priority.ToString(),
                 Status = workItem.Status.ToString(),
                 ProjectId = workItem.ProjectId,
-                ProjectName = project?.Name ?? string.Empty,
+                ProjectName = projectName ?? string.Empty,
                 AssigneeId = workItem.AssigneeId,
                 CreatedById = createdById,
                 CreatedAt = workItem.CreatedAt,
@@ -153,10 +154,7 @@ namespace ProjectTracker.Services.Services
                 .Include(w => w.Project)
                 .FirstOrDefaultAsync(w => w.Id == workItemDto.Id && !w.Project.IsDeleted);
 
-            if (workItem == null)
-            {
-                return null;
-            }
+            if (workItem == null) return null;
 
             var isOwner = workItem.Project.OwnerId == userId;
             var isTeamMember = await _context.TeamMembers
@@ -199,17 +197,11 @@ namespace ProjectTracker.Services.Services
                 .Include(w => w.Project)
                 .FirstOrDefaultAsync(w => w.Id == id && !w.Project.IsDeleted);
 
-            if (workItem == null)
-            {
-                return false;
-            }
+            if (workItem == null) return false;
 
             var isOwner = workItem.Project.OwnerId == userId;
 
-            if (!isAdmin && !isOwner)
-            {
-                return false;
-            }
+            if (!isAdmin && !isOwner) return false;
 
             _context.WorkItems.Remove(workItem);
             await _context.SaveChangesAsync();
@@ -223,10 +215,7 @@ namespace ProjectTracker.Services.Services
                 .Include(w => w.Project)
                 .FirstOrDefaultAsync(w => w.Id == id && !w.Project.IsDeleted);
 
-            if (workItem == null)
-            {
-                return false;
-            }
+            if (workItem == null) return false;
 
             var isOwner = workItem.Project.OwnerId == userId;
             var isTeamMember = await _context.TeamMembers
@@ -269,7 +258,10 @@ namespace ProjectTracker.Services.Services
             _context.Comments.Add(comment);
             await _context.SaveChangesAsync();
 
-            var author = await _context.Users.FindAsync(authorId);
+            var authorName = await _context.Users
+                .Where(u => u.Id == authorId)
+                .Select(u => u.FullName)
+                .FirstOrDefaultAsync();
 
             return new CommentDto
             {
@@ -277,28 +269,27 @@ namespace ProjectTracker.Services.Services
                 Content = comment.Content,
                 WorkItemId = comment.WorkItemId,
                 AuthorId = comment.AuthorId,
-                AuthorName = author?.FullName ?? "Unknown",
+                AuthorName = authorName ?? "Unknown",
                 CreatedAt = comment.CreatedAt
             };
         }
 
         public async Task<IEnumerable<CommentDto>> GetCommentsAsync(int workItemId)
         {
-            var comments = await _context.Comments
-                .Include(c => c.Author)
+            // Optimized with Select
+            return await _context.Comments
                 .Where(c => c.WorkItemId == workItemId)
                 .OrderByDescending(c => c.CreatedAt)
+                .Select(c => new CommentDto
+                {
+                    Id = c.Id,
+                    Content = c.Content,
+                    WorkItemId = c.WorkItemId,
+                    AuthorId = c.AuthorId,
+                    AuthorName = c.Author != null ? c.Author.FullName : "Unknown",
+                    CreatedAt = c.CreatedAt
+                })
                 .ToListAsync();
-
-            return comments.Select(c => new CommentDto
-            {
-                Id = c.Id,
-                Content = c.Content,
-                WorkItemId = c.WorkItemId,
-                AuthorId = c.AuthorId,
-                AuthorName = c.Author.FullName,
-                CreatedAt = c.CreatedAt
-            });
         }
 
         public async Task<bool> AssignWorkItemAsync(int id, string assigneeId, string userId, bool isAdmin)
@@ -307,26 +298,20 @@ namespace ProjectTracker.Services.Services
                 .Include(w => w.Project)
                 .FirstOrDefaultAsync(w => w.Id == id && !w.Project.IsDeleted);
 
-            if (workItem == null)
-            {
-                return false;
-            }
+            if (workItem == null) return false;
 
             var isOwner = workItem.Project.OwnerId == userId;
             var isTeamMember = await _context.TeamMembers
                 .AnyAsync(tm => tm.ProjectId == workItem.ProjectId && tm.UserId == userId && tm.IsActive);
 
-            if (!isAdmin && !isOwner && !isTeamMember)
-            {
-                return false;
-            }
+            if (!isAdmin && !isOwner && !isTeamMember) return false;
 
-            var isAssigneeValid = await _context.TeamMembers
-                .AnyAsync(tm => tm.ProjectId == workItem.ProjectId && tm.UserId == assigneeId && tm.IsActive);
-
-            if (!isAssigneeValid && !string.IsNullOrEmpty(assigneeId))
+            if (!string.IsNullOrEmpty(assigneeId))
             {
-                return false;
+                var isAssigneeValid = await _context.TeamMembers
+                    .AnyAsync(tm => tm.ProjectId == workItem.ProjectId && tm.UserId == assigneeId && tm.IsActive);
+
+                if (!isAssigneeValid) return false;
             }
 
             workItem.AssigneeId = string.IsNullOrEmpty(assigneeId) ? null : assigneeId;
@@ -346,9 +331,6 @@ namespace ProjectTracker.Services.Services
         public async Task<IEnumerable<WorkItemDto>> GetWorkItemsByAssigneeAsync(string assigneeId, string userId, bool isAdmin)
         {
             var query = _context.WorkItems
-                .Include(w => w.Project)
-                .Include(w => w.Assignee)
-                .Include(w => w.CreatedBy)
                 .Where(w => !w.Project.IsDeleted && w.AssigneeId == assigneeId);
 
             if (!isAdmin)
@@ -359,36 +341,35 @@ namespace ProjectTracker.Services.Services
                     w.Project.TeamMembers.Any(tm => tm.UserId == userId));
             }
 
-            var workItems = await query.ToListAsync();
-
-            return workItems.Select(w => new WorkItemDto
-            {
-                Id = w.Id,
-                Title = w.Title,
-                Description = w.Description,
-                Priority = w.Priority.ToString(),
-                Status = w.Status.ToString(),
-                ProjectId = w.ProjectId,
-                ProjectName = w.Project.Name,
-                AssigneeId = w.AssigneeId,
-                AssigneeName = w.Assignee?.FullName ?? "Unassigned",
-                CreatedById = w.CreatedById ?? string.Empty,
-                CreatedByName = w.CreatedBy?.FullName ?? "Unknown",
-                CreatedAt = w.CreatedAt,
-                DueDate = w.DueDate,
-                CompletedAt = w.CompletedAt,
-                EstimatedHours = w.EstimatedHours,
-                ActualHours = w.ActualHours,
-                CommentsCount = w.Comments.Count
-            }).OrderByDescending(w => w.CreatedAt);
+            // Optimized with Select
+            return await query
+                .Select(w => new WorkItemDto
+                {
+                    Id = w.Id,
+                    Title = w.Title,
+                    Description = w.Description,
+                    Priority = w.Priority.ToString(),
+                    Status = w.Status.ToString(),
+                    ProjectId = w.ProjectId,
+                    ProjectName = w.Project.Name,
+                    AssigneeId = w.AssigneeId,
+                    AssigneeName = w.Assignee != null ? w.Assignee.FullName : "Unassigned",
+                    CreatedById = w.CreatedById ?? string.Empty,
+                    CreatedByName = w.CreatedBy != null ? w.CreatedBy.FullName : "Unknown",
+                    CreatedAt = w.CreatedAt,
+                    DueDate = w.DueDate,
+                    CompletedAt = w.CompletedAt,
+                    EstimatedHours = w.EstimatedHours,
+                    ActualHours = w.ActualHours,
+                    CommentsCount = w.Comments.Count
+                })
+                .OrderByDescending(w => w.CreatedAt)
+                .ToListAsync();
         }
 
         public async Task<PaginatedResult<WorkItemDto>> GetFilteredWorkItemsAsync(WorkItemFilterDto filter)
         {
             var query = _context.WorkItems
-                .Include(w => w.Project)
-                .Include(w => w.Assignee)
-                .Include(w => w.CreatedBy)
                 .Where(w => !w.Project.IsDeleted);
 
             if (!filter.IsAdmin)
@@ -438,40 +419,40 @@ namespace ProjectTracker.Services.Services
             };
 
             var totalCount = await query.CountAsync();
+
+            // Optimized with Select
             var items = await query
                 .Skip((filter.Page - 1) * filter.PageSize)
                 .Take(filter.PageSize)
+                .Select(w => new WorkItemDto
+                {
+                    Id = w.Id,
+                    Title = w.Title,
+                    Description = w.Description,
+                    Priority = w.Priority.ToString(),
+                    Status = w.Status.ToString(),
+                    ProjectId = w.ProjectId,
+                    ProjectName = w.Project.Name,
+                    AssigneeId = w.AssigneeId,
+                    AssigneeName = w.Assignee != null ? w.Assignee.FullName : "Unassigned",
+                    CreatedById = w.CreatedById ?? string.Empty,
+                    CreatedByName = w.CreatedBy != null ? w.CreatedBy.FullName : "Unknown",
+                    CreatedAt = w.CreatedAt,
+                    DueDate = w.DueDate,
+                    CompletedAt = w.CompletedAt,
+                    EstimatedHours = w.EstimatedHours,
+                    ActualHours = w.ActualHours,
+                    CommentsCount = w.Comments.Count
+                })
                 .ToListAsync();
-
-            var workItemDtos = items.Select(w => new WorkItemDto
-            {
-                Id = w.Id,
-                Title = w.Title,
-                Description = w.Description,
-                Priority = w.Priority.ToString(),
-                Status = w.Status.ToString(),
-                ProjectId = w.ProjectId,
-                ProjectName = w.Project.Name,
-                AssigneeId = w.AssigneeId,
-                AssigneeName = w.Assignee?.FullName ?? "Unassigned",
-                CreatedById = w.CreatedById ?? string.Empty,
-                CreatedByName = w.CreatedBy?.FullName ?? "Unknown",
-                CreatedAt = w.CreatedAt,
-                DueDate = w.DueDate,
-                CompletedAt = w.CompletedAt,
-                EstimatedHours = w.EstimatedHours,
-                ActualHours = w.ActualHours,
-                CommentsCount = w.Comments.Count
-            });
 
             return new PaginatedResult<WorkItemDto>
             {
-                Items = workItemDtos,
+                Items = items,
                 TotalCount = totalCount,
                 Page = filter.Page,
                 PageSize = filter.PageSize
             };
         }
-
     }
 }
