@@ -38,11 +38,10 @@ namespace ProjectTracker.Services.Services
                     CompletedProjects = g.Count(p => p.Status == ProjectStatus.Completed),
                     OnHoldProjects = g.Count(p => p.Status == ProjectStatus.OnHold),
                     ProjectsByStatus = g.GroupBy(p => p.Status)
-                        .Select(sg => new ProjectByStatusDto
+                        .Select(sg => new
                         {
-                            Status = sg.Key.ToString(),
-                            Count = sg.Count(),
-                            Color = GetProjectStatusColor(sg.Key)
+                            Status = sg.Key,
+                            Count = sg.Count()
                         }).ToList()
                 })
                 .FirstOrDefaultAsync();
@@ -101,7 +100,14 @@ namespace ProjectTracker.Services.Services
                 TotalTeamMembers = teamMembersCount,
 
                 WorkItemsByStatus = workItemData?.WorkItemsByStatus ?? new List<WorkItemByStatusDto>(),
-                ProjectsByStatus = projectData?.ProjectsByStatus ?? new List<ProjectByStatusDto>()
+                ProjectsByStatus = projectData?.ProjectsByStatus?
+                    .Select(x => new ProjectByStatusDto
+                    {
+                        Status = x.Status.ToString(),
+                        Count = x.Count,
+                        Color = GetProjectStatusColor(x.Status) // safe: runs in-memory
+                    })
+                    .ToList() ?? new List<ProjectByStatusDto>()
             };
 
             dashboard.RecentActivities = await GetRecentActivitiesAsync(userId ?? string.Empty, isAdmin, 10);
@@ -239,7 +245,7 @@ namespace ProjectTracker.Services.Services
             return projects;
         }
 
-        private string GetProjectStatusColor(ProjectStatus status)
+        private static string GetProjectStatusColor(ProjectStatus status)
         {
             return status switch
             {
@@ -252,7 +258,7 @@ namespace ProjectTracker.Services.Services
             };
         }
 
-        private string GetWorkItemStatusColor(WorkItemStatus status)
+        private static string GetWorkItemStatusColor(WorkItemStatus status)
         {
             return status switch
             {

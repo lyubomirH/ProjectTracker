@@ -49,19 +49,18 @@ namespace ProjectTracker.Web.Controllers
                 return View(model);
             }
 
-            var user = await _userManager.FindByEmailAsync(model.Email);
-
-            if (user != null)
-            {
-                user.LastLoginAt = DateTime.UtcNow;
-                await _userManager.UpdateAsync(user);
-            }
-
             var result = await _signInManager.PasswordSignInAsync(
                 model.Email, model.Password, model.RememberMe, lockoutOnFailure: false);
 
             if (result.Succeeded)
             {
+                var user = await _userManager.FindByEmailAsync(model.Email);
+                if (user != null)
+                {
+                    user.LastLoginAt = DateTime.UtcNow;
+                    await _userManager.UpdateAsync(user);
+                }
+
                 TempData["SuccessMessage"] = "Welcome back!";
                 return RedirectToAction("Index", "Home");
             }
@@ -99,20 +98,22 @@ namespace ProjectTracker.Web.Controllers
                 FirstName = model.FirstName,
                 LastName = model.LastName,
                 CreatedAt = DateTime.UtcNow,
-                LastLoginAt = DateTime.UtcNow,  // Set initial login time
-                EmailConfirmed = true
+                LastLoginAt = DateTime.UtcNow,
+                EmailConfirmed = true,
+                IsActive = true
             };
 
             var result = await _userManager.CreateAsync(user, model.Password);
 
             if (result.Succeeded)
             {
-                if (!await _roleManager.RoleExistsAsync(model.Role))
+                // Always assign the default "Viewer" role
+                if (!await _roleManager.RoleExistsAsync(RoleNames.Viewer))
                 {
-                    await _roleManager.CreateAsync(new IdentityRole(model.Role));
+                    await _roleManager.CreateAsync(new IdentityRole(RoleNames.Viewer));
                 }
 
-                await _userManager.AddToRoleAsync(user, model.Role);
+                await _userManager.AddToRoleAsync(user, RoleNames.Viewer);
 
                 await _signInManager.SignInAsync(user, isPersistent: false);
 

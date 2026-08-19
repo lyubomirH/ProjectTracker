@@ -32,9 +32,5 @@ namespace ProjectTracker.Web.ViewModels.Auth
         [StringLength(DataConstants.User.MaxLastNameLength, MinimumLength = DataConstants.User.MinLastNameLength,
             ErrorMessage = "Last name must be between {2} and {1} characters")]
         public string LastName { get; set; } = string.Empty;
-
-        [Required(ErrorMessage = "Role is required")]
-        [Display(Name = "Role")]
-        public string Role { get; set; } = RoleNames.Developer;
     }
 }

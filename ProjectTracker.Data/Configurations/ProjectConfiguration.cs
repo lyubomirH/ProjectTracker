@@ -17,8 +17,10 @@ namespace ProjectTracker.Data.Configurations
                 .HasForeignKey(p => p.OwnerId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            // Unique index for Project Name to prevent duplicates
             builder.HasIndex(p => p.Name)
-                .HasDatabaseName("IX_Projects_Name");
+                .IsUnique()
+                .HasDatabaseName("IX_Projects_Name_Unique");
 
             builder.HasIndex(p => p.Status)
                 .HasDatabaseName("IX_Projects_Status");

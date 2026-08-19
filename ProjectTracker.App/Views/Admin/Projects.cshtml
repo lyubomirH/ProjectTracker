@@ -59,7 +59,7 @@
                 <tbody>
                     @foreach (var project in Model.Projects)
                     {
-                        <table>
+                        <tr>
                             <td>@project.Name</td>
                             <td>@project.OwnerName</td>
                             <td>
@@ -70,19 +70,19 @@
                                         <option value="@status" selected="@selected">@status</option>
                                     }
                                 </select>
-                             </td>
+                            </td>
                             <td>@project.WorkItemsCount</td>
                             <td>@project.CreatedAt.ToString("yyyy-MM-dd")</td>
                             <td>
                                 <a asp-controller="Projects" asp-action="Details" asp-route-id="@project.Id" class="btn btn-sm btn-info">
                                     <i class="fas fa-eye"></i>
                                 </a>
-                                <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal" 
+                                <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal"
                                         data-project-id="@project.Id" data-project-name="@project.Name">
                                     <i class="fas fa-trash-alt"></i>
                                 </button>
-                             </td>
-                        </table>
+                            </td>
+                        </tr>
                     }
                 </tbody>
              </table>
